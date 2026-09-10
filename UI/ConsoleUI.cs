@@ -1,96 +1,76 @@
 // [Your Name Here]
 // CSCI 251 - Secure Distributed Messenger
 //
-// SPRINT 1: Threading & Basic Networking
-// Due: Week 5 | Work on: Weeks 3-4
-//
+// ConsoleUI.cs - Handles command parsing and message display.
 
 using SecureMessenger.Core;
 
 namespace SecureMessenger.UI;
 
 /// <summary>
-/// Console-based user interface.
-/// Handles user input parsing and message display.
+/// Console user interface. Parses input and displays messages.
 ///
-/// Supported Commands:
-/// - /connect host port  - Connect to another messenger
-/// - /listen port        - Start listening for connections
-/// - /peers              - Show connection status
-/// - /history            - View message history (Sprint 3)
-/// - /quit or /exit      - Exit the application
-/// - Any other text      - Send as a message
+/// Commands: /connect, /listen, /peers, /quit, /help
+/// Anything else is treated as a chat message.
 /// </summary>
 public class ConsoleUI
 {
     /// <summary>
-    /// Display a received message to the console.
+    /// Display a message in the console.
     ///
-    /// TODO: Implement the following:
-    /// 1. Format the message nicely, e.g.: "[14:30:25] Alice: Hello!"
-    /// 2. Use message.Timestamp.ToString("HH:mm:ss") for time format
-    /// 3. Print to console
+    /// TODO: Format it nicely with a timestamp and sender name.
+    /// Something like: [14:30:25] Alice: Hello!
+    /// (message.Timestamp.ToString("HH:mm:ss") for the time)
     /// </summary>
     public void DisplayMessage(Message message)
     {
-        throw new NotImplementedException("Implement DisplayMessage() - see TODO in comments above");
+        throw new NotImplementedException("Implement DisplayMessage()");
     }
 
     /// <summary>
-    /// Display a system message to the console.
-    ///
-    /// TODO: Implement the following:
-    /// 1. Print in a distinct format, e.g.: "[System] Server started on port 5000"
+    /// Display a system notification (not a chat message).
+    /// TODO: Print with some prefix like [System] so it's visually distinct.
     /// </summary>
     public void DisplaySystem(string message)
     {
-        throw new NotImplementedException("Implement DisplaySystem() - see TODO in comments above");
+        throw new NotImplementedException("Implement DisplaySystem()");
     }
 
     /// <summary>
-    /// Show available commands to the user.
-    ///
-    /// TODO: Implement the following:
-    /// 1. Print a formatted help message showing all available commands
-    /// 2. Include: /connect, /listen, /peers, /history, /quit
+    /// Print available commands.
     /// </summary>
     public void ShowHelp()
     {
-        throw new NotImplementedException("Implement ShowHelp() - see TODO in comments above");
+        throw new NotImplementedException("Implement ShowHelp()");
     }
 
     /// <summary>
-    /// Parse user input and return a CommandResult.
+    /// Parse a line of user input into either a command or a chat message.
     ///
-    /// TODO: Implement the following:
-    /// 1. Check if input starts with "/" - if not, it's a regular message:
-    ///    - Return CommandResult with IsCommand = false, Message = input
+    /// TODO:
+    /// If input doesn't start with "/", it's a message - return a CommandResult
+    /// with IsCommand = false and Message = the input text.
     ///
-    /// 2. If it's a command, split by spaces and parse:
-    ///    - "/connect host port" -> CommandType.Connect with Args = [host, port]
-    ///    - "/listen port" -> CommandType.Listen with Args = [port]
-    ///    - "/peers" -> CommandType.Peers
-    ///    - "/history" -> CommandType.History
-    ///    - "/quit" or "/exit" -> CommandType.Quit
-    ///    - "/help" -> CommandType.Help
-    ///    - Unknown command -> CommandType.Unknown with error message
+    /// If it does start with "/", split on spaces and figure out which command:
+    ///   /connect host port  -> CommandType.Connect, Args = [host, port]
+    ///   /listen port        -> CommandType.Listen, Args = [port]
+    ///   /peers              -> CommandType.Peers
+    ///   /quit or /exit      -> CommandType.Quit
+    ///   /help               -> CommandType.Help
+    ///   anything else       -> CommandType.Unknown with an error message
     ///
-    /// 3. Validate arguments:
-    ///    - /connect requires 2 args (host and port)
-    ///    - /listen requires 1 arg (port)
+    /// Check that /connect has 2 args and /listen has 1. If not, return
+    /// Unknown with a usage hint.
     ///
-    /// Hint: Use input.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-    /// Hint: Use a switch expression for clean command matching
+    /// Tip: input.Split(' ', StringSplitOptions.RemoveEmptyEntries) and
+    /// a switch on parts[0].ToLower() works well here.
     /// </summary>
     public CommandResult ParseCommand(string input)
     {
-        throw new NotImplementedException("Implement ParseCommand() - see TODO in comments above");
+        throw new NotImplementedException("Implement ParseCommand()");
     }
 }
 
-/// <summary>
-/// Types of commands the user can enter
-/// </summary>
 public enum CommandType
 {
     Unknown,
@@ -103,19 +83,14 @@ public enum CommandType
 }
 
 /// <summary>
-/// Result of parsing a user input line
+/// What ParseCommand returns. Either a command (IsCommand = true) with
+/// a CommandType and optional Args, or a chat message (IsCommand = false)
+/// with the text in Message.
 /// </summary>
 public class CommandResult
 {
-    /// <summary>True if the input was a command (started with /)</summary>
     public bool IsCommand { get; set; }
-
-    /// <summary>The type of command parsed</summary>
     public CommandType CommandType { get; set; }
-
-    /// <summary>Arguments for the command (e.g., host and port for /connect)</summary>
     public string[]? Args { get; set; }
-
-    /// <summary>The message content (for non-commands or error messages)</summary>
     public string? Message { get; set; }
 }

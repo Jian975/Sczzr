@@ -12,7 +12,7 @@ namespace SecureMessenger.Core;
 ///
 /// Sprint 1: Only Text is used
 /// Sprint 2: Add KeyExchange and SessionKey for encryption setup
-/// Sprint 3: Add Heartbeat and PeerDiscovery for P2P features
+/// Sprint 3: Add Heartbeat and PeerList for P2P features
 /// </summary>
 public enum MessageType
 {
@@ -20,7 +20,7 @@ public enum MessageType
     KeyExchange,    // Sprint 2: Public key exchange
     SessionKey,     // Sprint 2: Encrypted session key
     Heartbeat,      // Sprint 3: Connection health check
-    PeerDiscovery   // Sprint 3: Peer announcement
+    PeerList        // Sprint 3: Required peer-exchange gossip (PeerDiscovery.BuildPeerListMessage)
 }
 
 /// <summary>
@@ -45,8 +45,13 @@ public class Message
     public byte[]? EncryptedContent { get; set; }
     public byte[]? PublicKey { get; set; }
 
-    // Sprint 3: Target peer for directed messages
+    // Sprint 2-3: Target peer for directed/routed messages (/msg @peer)
     public string? TargetPeerId { get; set; }
+
+    // Sprint 2+: Which chat room this message belongs to, if any (/msg #room).
+    // Null/empty means it's not a room message (e.g. a direct message, or a
+    // protocol message like KeyExchange/Heartbeat/PeerList).
+    public string? RoomName { get; set; }
 
     public override string ToString()
     {

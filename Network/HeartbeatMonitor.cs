@@ -2,7 +2,7 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
-// Due: Week 14 | Work on: Weeks 11-13
+// Due: Week 14
 //
 // NOTE: This file is NOT used in Sprint 1 or Sprint 2!
 //

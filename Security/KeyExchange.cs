@@ -2,7 +2,7 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
-// Due: Week 10 | Work on: Weeks 6-9
+// Due: Week 10
 //
 
 using System.Security.Cryptography;

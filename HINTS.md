@@ -1,12 +1,12 @@
-# Concepts Reference Guide
+# Concepts Reference
 
-This guide explains key concepts you'll need. See Microsoft docs for full API details.
+Quick reference for the key concepts you'll need. Check the Microsoft docs for full API details.
 
 ---
 
-## Sprint 1: Using the Starter Code
+## How the Starter Code Fits Together
 
-The starter code provides `Server` and `Client` classes - you implement the methods inside them.
+The starter code gives you `Server` and `Client` classes with empty methods. You fill them in.
 
 ```
 ┌─────────────────┐                    ┌─────────────────────┐
@@ -21,103 +21,94 @@ The starter code provides `Server` and `Client` classes - you implement the meth
 └─────────────────┘                    └─────────────────────┘
 ```
 
-**How the pieces connect in Program.cs:**
+In Program.cs, you create instances of both, subscribe to their events, and wire up the input loop. When the user types `/listen`, call `_server.Start(port)`. When they type `/connect`, call `_client.ConnectAsync(host, port)`. Events fire automatically as things happen on the network.
 
-1. Create instances of both classes
-2. Subscribe to their events to handle connections/messages
-3. When user types `/listen` → call `_server.Start(port)`
-4. When user types `/connect` → call `_client.ConnectAsync(host, port)`
-5. Events fire automatically as things happen
+**Test with three terminals:**
+- Terminal 1: `/listen 5000` (the server, just relays messages)
+- Terminal 2: `/connect 127.0.0.1 5000` (client)
+- Terminal 3: `/connect 127.0.0.1 5000` (another client)
 
-**Test with two terminals:**
-- Terminal 1: `/listen 5000` (waits for connections)
-- Terminal 2: `/connect 127.0.0.1 5000` (connects to Terminal 1)
+Clients 2 and 3 chat through server 1.
 
-**Wiring up events in Program.cs:**
+**Note:** nothing in `Server`/`Client` stops one process from calling both `Start()` and `ConnectAsync()` — they're independent objects, neither aware of the other. For Sprint 1 and 2 don't do this: one process should be the relay (`/listen` only), everyone else connects to it (`/connect` only). That's a project requirement, not a code restriction — the code would let you do it. Sprint 3 flips this: a peer is exactly a node doing both at once.
+
+**Wiring up events:**
 ```csharp
-// Create instances
 _server = new Server();
 _client = new Client();
 
-// Subscribe to events - these fire when things happen
-_server.OnClientConnected += (endpoint) => { /* new connection */ };
-_server.OnClientDisconnected += (endpoint) => { /* client left */ };
-_server.OnMessageReceived += (message) => { /* got message */ };
+// These fire when things happen on the network
+_server.OnClientConnected += (endpoint) => { /* someone connected */ };
+_server.OnClientDisconnected += (endpoint) => { /* someone left */ };
+_server.OnMessageReceived += (endpoint, message) => { /* relay it with Broadcast(), or
+                                                          SendTo(endpoint, message) if it
+                                                          should only go to one client */ };
 
-_client.OnConnected += (endpoint) => { /* connected to server */ };
-_client.OnDisconnected += (endpoint) => { /* disconnected */ };
-_client.OnMessageReceived += (message) => { /* got message */ };
+_client.OnConnected += (endpoint) => { /* we connected to a server */ };
+_client.OnDisconnected += (endpoint) => { /* lost connection */ };
+_client.OnMessageReceived += (message) => { /* show the message */ };
 ```
 
-### Sprint 2: Add Encryption Layer
-
-Your Sprint 1 networking code stays the same. You add encryption *around* it:
-
-1. Before sending → encrypt the content
-2. After receiving → decrypt the content
-3. On connect → exchange keys first
-
-### Sprint 3: Upgrade to Peer Model
-
-In Sprint 3, you refactor to use the `Peer` class for richer connection tracking:
-
-1. Replace `List<TcpClient>` with `List<Peer>`
-2. Change events from `Action<string>` to `Action<Peer>`
-3. Add PeerDiscovery for automatic peer finding
-4. Add HeartbeatMonitor for connection health
-5. Add ReconnectionPolicy for fault tolerance
-
-Every instance runs both server AND client simultaneously. Your `/listen` starts the server, `/connect` uses the client, and both can be active.
+`Server.OnMessageReceived` hands you the sender's endpoint along with the message - you need it
+to know who to reply to, or who to exclude from a broadcast. `Client` only ever talks to one
+thing (whatever it connected to), so it doesn't need that.
 
 ---
 
 ## Events and Actions
 
-An `Action<T>` is a delegate - a reference to a method. Events let one class notify others.
+An `Action<T>` is just a reference to a method. Events let one class notify another when something happens.
 
-**The pattern:**
-- Declare: `public event Action<string>? OnSomething;`
-- Invoke (inside class): `OnSomething?.Invoke("data");`
-- Subscribe (outside class): `obj.OnSomething += (data) => { /* handle */ };`
+**Declare it** (inside the class):
+```csharp
+public event Action<string>? OnSomething;
+```
 
-**Why `?.Invoke()`?** The event might have no subscribers (null). The `?.` safely checks first.
+**Fire it** (inside the class):
+```csharp
+OnSomething?.Invoke("data");
+```
 
-**Why `+=`?** Multiple handlers can subscribe. Each one gets called when the event fires.
+**Subscribe** (from outside):
+```csharp
+obj.OnSomething += (data) => { /* handle it */ };
+```
+
+The `?.` is important - if nobody subscribed, the event is null, and calling Invoke on null would crash.
+
+You can subscribe multiple handlers with `+=`. They all get called when the event fires.
 
 ---
 
 ## BlockingCollection<T>
 
-A thread-safe queue where `Take()` **blocks** (waits) when empty. Perfect for producer/consumer.
+A thread-safe queue where `Take()` blocks (waits) until something is available. Good for producer/consumer patterns.
 
-**Key methods:**
-- `Add(item)` - puts item in queue (never blocks)
-- `Take()` - gets item, blocks if empty
-- `Take(token)` - blocks until item OR token cancelled
-- `TryTake(out item)` - non-blocking, returns true/false
-- `CompleteAdding()` - signals shutdown, unblocks waiting Take() calls
+- `Add(item)` - puts an item in, never blocks
+- `Take()` - gets an item, blocks if the queue is empty
+- `Take(token)` - same but respects cancellation
+- `CompleteAdding()` - signals that nothing more will be added; unblocks waiting consumers
 
-**Why blocking matters:** Without it, your consumer thread would spin in a loop wasting CPU. With blocking, it efficiently waits.
+Without blocking, a consumer thread would just spin in a tight loop burning CPU while waiting for data.
 
-**Note:** MessageQueue is optional for Sprint 1. The simplest approach is to handle messages directly in event handlers. MessageQueue is useful if you want a more sophisticated producer/consumer architecture.
+**Note:** You don't need MessageQueue for Sprint 1. Handling messages directly in your event handlers is simpler and works fine.
 
 ---
 
 ## Threads and Tasks
 
-**Starting work on a background thread:**
+Starting background work:
 ```csharp
+// Option A: explicit thread
 var thread = new Thread(MethodName);
-thread.IsBackground = true;  // Won't prevent app exit
+thread.IsBackground = true;  // won't prevent app from exiting
 thread.Start();
+
+// Option B: task (easier with async/await)
+_ = Task.Run(() => DoWork());
 ```
 
-**Or with Task:**
-```csharp
-_ = Task.Run(() => DoWork());  // Fire and forget
-```
-
-**Cancellation pattern:**
+Cancellation pattern - check this in your loops:
 ```csharp
 while (!_cancellationTokenSource.IsCancellationRequested)
 {
@@ -129,45 +120,43 @@ while (!_cancellationTokenSource.IsCancellationRequested)
 
 ## Locking
 
-Use `lock` when multiple threads access the same data.
+When multiple threads touch the same data, use `lock`:
 
-**The pattern:**
 ```csharp
 private readonly object _clientsLock = new();
 private readonly List<TcpClient> _clients = new();
 
-// In any method that touches _clients:
 lock (_clientsLock)
 {
-    // safe to access _clients here
+    _clients.Add(client);
 }
 ```
 
-**Important:**
-- Always use the SAME lock object for the same data
-- Return copies, not the original: `return _clients.ToList();`
-- Don't hold locks during slow operations (network I/O)
+A few rules:
+- Always use the **same lock object** for the same data
+- If you need to return the list contents, return a copy: `_clients.ToList()`
+- Don't hold a lock while doing slow stuff like network I/O
 
 ---
 
 ## TCP Basics
 
 **Server side (TcpListener):**
-1. Create listener on a port
-2. Call `Start()` to begin listening
-3. Call `AcceptTcpClientAsync()` to wait for a connection
-4. Get `NetworkStream` from the client
-5. Read/write bytes over the stream
+1. Create a listener on a port
+2. `Start()` it
+3. `AcceptTcpClientAsync()` to wait for someone to connect
+4. Get a `NetworkStream` from the client, read/write bytes on it
 
 **Client side (TcpClient):**
-1. Create TcpClient
-2. Call `ConnectAsync(host, port)`
-3. Get `NetworkStream` with `GetStream()`
-4. Read/write bytes over the stream
+1. Create a TcpClient
+2. `ConnectAsync(host, port)`
+3. `GetStream()` gives you the NetworkStream
+4. Read/write bytes
 
-**Message Framing (Length-Prefix):**
+**Length-prefix framing:**
 
-The starter code uses length-prefix framing for messages:
+TCP is a byte stream - it doesn't know where one message ends and the next begins. We solve this by sending the message length first:
+
 ```
 ┌─────────────┬────────────────────────────┐
 │ 4 bytes     │ N bytes                    │
@@ -175,7 +164,7 @@ The starter code uses length-prefix framing for messages:
 └─────────────┴────────────────────────────┘
 ```
 
-**Sending:**
+Sending:
 ```csharp
 var json = JsonSerializer.Serialize(message);
 var payload = Encoding.UTF8.GetBytes(json);
@@ -185,14 +174,14 @@ stream.Write(lengthPrefix, 0, 4);
 stream.Write(payload, 0, payload.Length);
 ```
 
-**Receiving:**
+Receiving:
 ```csharp
 var lengthBuffer = new byte[4];
 await stream.ReadAsync(lengthBuffer, 0, 4);
 var messageLength = BitConverter.ToInt32(lengthBuffer, 0);
 
 var messageBuffer = new byte[messageLength];
-// Read full payload (may require multiple reads)
+// May need multiple reads - see below
 await stream.ReadAsync(messageBuffer, 0, messageLength);
 
 var json = Encoding.UTF8.GetString(messageBuffer);
@@ -201,16 +190,16 @@ var message = JsonSerializer.Deserialize<Message>(json);
 
 ---
 
-## Common Pitfalls
+## Watch Out For
 
-1. **Forgetting null check on events** → Use `?.Invoke()` not just `Invoke()`
+1. **Null events** - Always use `?.Invoke()`, not just `Invoke()`. If nobody subscribed, the event is null.
 
-2. **Returning internal collection** → Return `.ToList()` copy instead
+2. **Returning your internal list** - Return `_clients.ToList()` (a copy), not the list itself. Otherwise another thread could modify it while you're iterating.
 
-3. **Blocking UI thread** → Network code should run on background threads
+3. **Blocking the main thread** - Network code needs to run on background threads. The main thread should only handle console input.
 
-4. **Not handling closed connections** → Check for `bytesRead == 0`
+4. **Closed connections** - If `ReadAsync` returns 0 bytes, the other side disconnected. Handle it.
 
-5. **Race condition on shared data** → Use lock or concurrent collections
+5. **Race conditions** - If two threads touch the same data, use `lock` or a concurrent collection.
 
-6. **Partial reads** → TCP doesn't guarantee full messages arrive together. Loop until you've read the expected number of bytes.
+6. **Partial reads** - `ReadAsync` might not return all the bytes you asked for in one call. You need to loop until you've read the full expected length.

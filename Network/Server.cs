@@ -1,21 +1,11 @@
 // [Your Name Here]
 // CSCI 251 - Secure Distributed Messenger
 //
-// SPRINT 1: Threading & Basic Networking
-// Due: Week 5 | Work on: Weeks 3-4
+// Server.cs - TCP server that listens for connections and receives messages.
+// The server is a headless relay: it accepts client connections and broadcasts
+// messages between them. It doesn't participate in the chat itself.
 //
-// KEY CONCEPTS USED IN THIS FILE:
-//   - TcpListener: accepts incoming connections (see HINTS.md)
-//   - Threads/Tasks: accept loop runs on background thread
-//   - Events (Action<T>): notify Program.cs when things happen
-//   - Locking: protect _clients list from concurrent access
-//
-// SPRINT PROGRESSION:
-//   - Sprint 1: Basic server with client connections (this file)
-//   - Sprint 2: Add encryption to message sending/receiving
-//   - Sprint 3: Refactor to use Peer class for richer connection tracking,
-//               add heartbeat monitoring and reconnection support
-//
+// See HINTS.md for TCP and threading reference.
 
 using System.Net;
 using System.Net.Sockets;
@@ -24,147 +14,136 @@ using SecureMessenger.Core;
 namespace SecureMessenger.Network;
 
 /// <summary>
-/// TCP server that listens for incoming connections.
-///
-/// In Sprint 1-2, we use simple client/server terminology:
-/// - Server listens for incoming connections
-/// - Connected parties are tracked as "clients"
-///
-/// In Sprint 3, this evolves to peer-to-peer:
-/// - Connections become "peers" with richer state (see Peer.cs)
-/// - Add peer discovery, heartbeats, and reconnection
+/// TCP server - listens for incoming connections and relays messages.
 /// </summary>
 public class Server
 {
     private TcpListener? _listener;
-    private readonly List<TcpClient> _clients = new();
+    private readonly Dictionary<string, TcpClient> _clients = new();
     private readonly object _clientsLock = new();
     private CancellationTokenSource? _cancellationTokenSource;
 
-    // Events: invoke these with OnXxx?.Invoke(...) when something happens
-    // Program.cs subscribes with: server.OnXxx += (args) => { ... };
-    public event Action<string>? OnClientConnected;      // endpoint string, e.g. "192.168.1.5:54321"
+    // Program.cs hooks into these to react to events.
+    // Usage: server.OnClientConnected += (endpoint) => { ... };
+    public event Action<string>? OnClientConnected;      // e.g. "192.168.1.5:54321"
     public event Action<string>? OnClientDisconnected;
-    public event Action<Message>? OnMessageReceived;
+    public event Action<string, Message>? OnMessageReceived;  // (endpoint that sent it, the message)
 
     public int Port { get; private set; }
     public bool IsListening { get; private set; }
 
     /// <summary>
-    /// Start listening for incoming connections on the specified port.
+    /// Start listening on the given port.
     ///
-    /// TODO: Implement the following:
-    /// 1. Store the port number in the Port property
-    /// 2. Create a new CancellationTokenSource
-    /// 3. Create a TcpListener on IPAddress.Any and the specified port
-    /// 4. Call Start() on the listener
-    /// 5. Set IsListening to true
-    /// 6. Start AcceptClientsAsync on a background Task
-    /// 7. Print a message indicating the server is listening
+    /// TODO:
+    /// - Save the port, create a CancellationTokenSource
+    /// - Create a TcpListener on IPAddress.Any with the port and Start() it
+    /// - Set IsListening = true
+    /// - Kick off AcceptClientsAsync on a background Task
+    /// - Print something so the user knows it's running
     /// </summary>
     public void Start(int port)
     {
-        throw new NotImplementedException("Implement Start() - see TODO in comments above");
+        throw new NotImplementedException("Implement Start()");
     }
 
     /// <summary>
-    /// Main loop that accepts incoming connections.
+    /// Runs in the background, accepting clients as they connect.
     ///
-    /// TODO: Implement the following:
-    /// 1. Loop while cancellation is not requested
-    /// 2. Use await _listener.AcceptTcpClientAsync(_cancellationTokenSource.Token)
-    /// 3. Get the endpoint string from client.Client.RemoteEndPoint
-    /// 4. Add the client to _clients (with proper locking)
-    /// 5. Invoke OnClientConnected event with the endpoint
-    /// 6. Start ReceiveFromClientAsync for this client on a background Task
-    /// 7. Catch OperationCanceledException (normal shutdown - just break)
-    /// 8. Catch other exceptions and log them
+    /// TODO:
+    /// Loop until cancellation is requested. Each iteration:
+    ///   - await _listener.AcceptTcpClientAsync(token)
+    ///   - Grab the endpoint string from client.Client.RemoteEndPoint
+    ///   - Add the client to _clients, keyed by that endpoint string (lock first!)
+    ///   - Fire OnClientConnected
+    ///   - Spin up ReceiveFromClientAsync for this client on another Task
+    ///
+    /// Catch OperationCanceledException (that's normal shutdown, just break).
+    /// Catch anything else and log it.
     /// </summary>
     private async Task AcceptClientsAsync()
     {
-        throw new NotImplementedException("Implement AcceptClientsAsync() - see TODO in comments above");
+        throw new NotImplementedException("Implement AcceptClientsAsync()");
     }
 
     /// <summary>
-    /// Receive loop for a specific client - reads messages until disconnection.
+    /// Reads messages from one client until they disconnect.
+    /// Uses length-prefix framing: first 4 bytes = payload length, then the JSON.
     ///
-    /// TODO: Implement the following:
-    /// 1. Get the NetworkStream from the client
-    /// 2. Create a 4-byte buffer for reading message length
-    /// 3. Loop while not cancelled and client is connected:
-    ///    a. Read 4 bytes for the message length (length-prefix framing)
-    ///    b. If bytesRead == 0, client disconnected - break
-    ///    c. Convert bytes to int using BitConverter.ToInt32
-    ///    d. Validate length (> 0 and < 1,000,000)
-    ///    e. Create a buffer for the message payload
-    ///    f. Read the full payload (may require multiple reads)
-    ///    g. Convert to string using Encoding.UTF8.GetString
-    ///    h. Deserialize JSON to Message using JsonSerializer.Deserialize
-    ///    i. Invoke OnMessageReceived event
-    /// 4. Catch OperationCanceledException (normal shutdown)
-    /// 5. Catch other exceptions and log them
-    /// 6. In finally block, call DisconnectClient
+    /// TODO:
+    /// Get the NetworkStream, allocate a 4-byte length buffer, then loop:
+    ///   - Read 4 bytes for the length. If bytesRead is 0, they disconnected.
+    ///   - Convert to int with BitConverter.ToInt32, sanity-check it (> 0, &lt; 1MB)
+    ///   - Allocate a buffer and read the full payload. Remember that ReadAsync
+    ///     might not give you everything in one call - loop until you have it all.
+    ///   - Decode with Encoding.UTF8.GetString, deserialize with JsonSerializer
+    ///   - Fire OnMessageReceived with (endpoint, result) - the caller needs to know
+    ///     WHICH client this came from to route replies, check room membership, etc.
     ///
-    /// Sprint 3: This method will be enhanced to work with Peer objects
-    /// instead of raw TcpClient, enabling richer connection state tracking.
+    /// Wrap the whole thing in try/catch - OperationCanceledException is normal.
+    /// Always call DisconnectClient in a finally block.
     /// </summary>
     private async Task ReceiveFromClientAsync(TcpClient client, string endpoint)
     {
-        throw new NotImplementedException("Implement ReceiveFromClientAsync() - see TODO in comments above");
+        throw new NotImplementedException("Implement ReceiveFromClientAsync()");
     }
 
     /// <summary>
-    /// Clean up a disconnected client.
+    /// Removes a client from the list and cleans up.
     ///
-    /// TODO: Implement the following:
-    /// 1. Remove the client from _clients (with proper locking)
-    /// 2. Close the client connection
-    /// 3. Invoke OnClientDisconnected event
-    ///
-    /// Sprint 3: This will be refactored to DisconnectPeer(Peer peer)
-    /// to handle richer peer state and trigger reconnection attempts.
+    /// TODO: Lock, remove from _clients, close the client, fire OnClientDisconnected.
     /// </summary>
     private void DisconnectClient(TcpClient client, string endpoint)
     {
-        throw new NotImplementedException("Implement DisconnectClient() - see TODO in comments above");
+        throw new NotImplementedException("Implement DisconnectClient()");
     }
 
     /// <summary>
-    /// Send a message to all connected clients (broadcast).
+    /// Sends a message to every connected client.
     ///
-    /// TODO: Implement the following:
-    /// 1. Serialize the message to JSON using JsonSerializer.Serialize
-    /// 2. Convert to bytes using Encoding.UTF8.GetBytes
-    /// 3. Create a 4-byte length prefix using BitConverter.GetBytes
-    /// 4. Get a copy of _clients (with proper locking)
-    /// 5. For each connected client:
-    ///    a. Get the NetworkStream
-    ///    b. Write the length prefix (4 bytes)
-    ///    c. Write the payload
-    /// 6. Handle exceptions for individual clients (don't stop broadcast)
+    /// TODO:
+    /// Serialize the message to JSON, convert to bytes, build the 4-byte length prefix.
+    /// Then grab a copy of _clients (lock!), and for each connected client, write
+    /// the length prefix + payload to their NetworkStream. If writing to one client
+    /// fails, catch the exception and keep going - don't kill the whole broadcast.
     /// </summary>
     public void Broadcast(Message message)
     {
-        throw new NotImplementedException("Implement Broadcast() - see TODO in comments above");
+        throw new NotImplementedException("Implement Broadcast()");
     }
 
     /// <summary>
-    /// Stop the server and close all connections.
+    /// Sends a message to exactly one connected client, identified by the same
+    /// endpoint string OnClientConnected/OnMessageReceived gave you. This is what
+    /// makes room-scoped delivery and per-recipient encryption possible - Broadcast
+    /// alone can't send different content to different clients, and chat rooms
+    /// (Sprint 2+) need exactly that: a message encrypted separately per recipient,
+    /// delivered only to that recipient.
     ///
-    /// TODO: Implement the following:
-    /// 1. Cancel the cancellation token
-    /// 2. Stop the listener
-    /// 3. Set IsListening to false
-    /// 4. Close all clients (with proper locking)
-    /// 5. Clear the _clients list
+    /// TODO:
+    /// Look up the endpoint in _clients (lock first!). If found, serialize the
+    /// message to JSON, build the length prefix, and write both to that client's
+    /// NetworkStream. If the endpoint isn't found (already disconnected), just
+    /// return - don't throw.
+    /// </summary>
+    public void SendTo(string endpoint, Message message)
+    {
+        throw new NotImplementedException("Implement SendTo()");
+    }
+
+    /// <summary>
+    /// Shut everything down.
+    ///
+    /// TODO: Cancel the token, stop the listener, set IsListening = false,
+    /// close all clients (with locking), clear the list.
     /// </summary>
     public void Stop()
     {
-        throw new NotImplementedException("Implement Stop() - see TODO in comments above");
+        throw new NotImplementedException("Implement Stop()");
     }
 
     /// <summary>
-    /// Get the count of currently connected clients.
+    /// How many clients are currently connected.
     /// </summary>
     public int ClientCount
     {

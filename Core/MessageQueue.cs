@@ -2,7 +2,7 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 1: Threading & Basic Networking
-// Due: Week 5 | Work on: Weeks 3-4
+// Due: Week 7
 //
 // KEY CONCEPTS USED IN THIS FILE:
 //   - BlockingCollection<T>: thread-safe queue that blocks on Take() (see HINTS.md)
@@ -13,7 +13,7 @@
 //
 // The simplest approach (used in the reference solution) is to handle messages
 // directly in event handlers:
-//   - server.OnMessageReceived += message => ui.DisplayMessage(message);
+//   - server.OnMessageReceived += (endpoint, message) => ui.DisplayMessage(message);
 //
 // MessageQueue is useful if you want a more sophisticated architecture:
 //   - Separate network I/O from message processing

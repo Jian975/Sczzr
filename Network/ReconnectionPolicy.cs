@@ -2,7 +2,7 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
-// Due: Week 14 | Work on: Weeks 11-13
+// Due: Week 14
 //
 // NOTE: This file is NOT used in Sprint 1 or Sprint 2!
 //
@@ -66,7 +66,9 @@ public class ReconnectionPolicy
     ///    d. Calculate delay using exponential backoff:
     ///       delay = min(InitialDelayMs * 2^(attempt-1), MaxDelayMs)
     ///       Hint: Use Math.Min and bit shifting (1 << (attempt-1)) or Math.Pow
-    ///    e. Try to connect using _client.ConnectAsync(peer.Address, peer.Port)
+    ///    e. Try to connect using _client.ConnectAsync(peer.Address?.ToString() ?? "", peer.Port)
+    ///       (Client.ConnectAsync takes a string host — peer.Address is an IPAddress, so it
+    ///       needs .ToString() first)
     ///    f. If successful:
     ///       - Log success
     ///       - Call ResetAttempts(peer.Id)

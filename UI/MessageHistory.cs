@@ -2,11 +2,12 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
-// Due: Week 14 | Work on: Weeks 11-13
+// Due: Week 14
 //
 
 using System.Text.Json;
 using SecureMessenger.Core;
+using SecureMessenger.Security;
 
 namespace SecureMessenger.UI;
 
@@ -14,30 +15,39 @@ namespace SecureMessenger.UI;
 /// Sprint 3: Message history storage and retrieval.
 /// Persists messages to a JSON file for retrieval across sessions.
 ///
+/// ENCRYPTION IS REQUIRED, NOT OPTIONAL. History is written to a plain
+/// file on disk - anyone with file access can read it unless you encrypt
+/// it. You've already built AesEncryption for Sprint 2; reuse it here.
+///
 /// Features:
 /// - Thread-safe message storage
-/// - JSON serialization/deserialization
-/// - Automatic loading on startup
+/// - JSON serialization, then AES-encrypted before hitting disk
+/// - Automatic loading (decrypt then deserialize) on startup
 /// - Configurable history display limit
 ///
-/// File Format: JSON array of Message objects
-/// Default file: "message_history.json"
+/// File Format: AES-encrypted bytes; decrypted content is a JSON array of Message objects
+/// Default file: "message_history.dat"
 /// </summary>
 public class MessageHistory
 {
     private readonly string _historyFile;
+    private readonly AesEncryption _encryption;
     private readonly List<Message> _messages = new();
     private readonly object _lock = new();
 
     /// <summary>
-    /// Create a MessageHistory with optional custom file path.
-    /// Automatically loads existing history from file.
+    /// Create a MessageHistory with the AES key used to encrypt/decrypt the
+    /// history file, and an optional custom file path. Automatically loads
+    /// and decrypts existing history from file.
     ///
     /// TODO: Implement the following:
     /// 1. Store the history file path
-    /// 2. Call Load() to load existing history
+    /// 2. Create an AesEncryption instance from the given key and store it
+    ///    (you can reuse a session's AES key, or generate/persist a
+    ///    dedicated history key - either is fine, just document which)
+    /// 3. Call Load() to load and decrypt existing history
     /// </summary>
-    public MessageHistory(string historyFile = "message_history.json")
+    public MessageHistory(byte[] encryptionKey, string historyFile = "message_history.dat")
     {
         throw new NotImplementedException("Implement constructor - see TODO in comments above");
     }
@@ -61,14 +71,14 @@ public class MessageHistory
     /// TODO: Implement the following:
     /// 1. Check if the history file exists
     /// 2. If it exists:
-    ///    a. Read the file contents as a string
-    ///    b. Deserialize from JSON to List<Message>
-    ///    c. Lock on _lock and replace _messages with loaded data
-    /// 3. Handle exceptions (file errors, JSON errors):
+    ///    a. Read the file contents as bytes (File.ReadAllBytes - it's
+    ///       encrypted, not text, so don't read it as a string)
+    ///    b. Decrypt with _encryption.Decrypt(...) to get back the JSON string
+    ///    c. Deserialize from JSON to List<Message>
+    ///    d. Lock on _lock and replace _messages with loaded data
+    /// 3. Handle exceptions (file errors, JSON errors, decryption errors):
     ///    a. Print error message but don't crash
     ///    b. Start with empty history if load fails
-    ///
-    /// Hint: Use JsonSerializer.Deserialize<List<Message>>()
     /// </summary>
     public void Load()
     {
@@ -76,13 +86,15 @@ public class MessageHistory
     }
 
     /// <summary>
-    /// Write the current messages to the history file.
+    /// Write the current messages to the history file, encrypted.
     ///
     /// TODO: Implement the following:
     /// 1. Serialize _messages to JSON
     ///    - Use JsonSerializerOptions with WriteIndented = true for readability
-    /// 2. Write the JSON string to the history file
-    /// 3. Handle exceptions:
+    /// 2. Encrypt the JSON string with _encryption.Encrypt(...) to get bytes
+    /// 3. Write those bytes to the history file (File.WriteAllBytes - the
+    ///    file is encrypted binary now, not human-readable JSON)
+    /// 4. Handle exceptions:
     ///    a. Print error message but don't crash
     ///
     /// Note: This is called while holding _lock, so don't lock again

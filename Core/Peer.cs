@@ -2,22 +2,33 @@
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
-// Due: Week 14 | Work on: Weeks 11-13
+// Due: Week 14
 //
 // NOTE: This file is NOT used in Sprint 1 or Sprint 2!
 //
-// In Sprint 1-2, connections are tracked as simple TcpClient objects
-// in Server.cs and Client.cs. The terminology is "client/server".
+// THE TRANSPORT LAYER DOESN'T CHANGE FOR SPRINT 3 - READ THIS FIRST
 //
-// In Sprint 3, you'll refactor to use this Peer class to enable:
-// - Richer connection state (LastSeen, reconnection status)
-// - Peer discovery via UDP broadcast
-// - Heartbeat monitoring
-// - Automatic reconnection
+// In Sprint 1-2, Server.cs and Client.cs track raw connections by endpoint
+// string ("192.168.1.5:54321") or TcpClient. That's the client/server model:
+// one Server relaying between many clients, one Client talking to it.
 //
-// When you reach Sprint 3, update Server.cs and Client.cs to use
-// List<Peer> instead of List<TcpClient>, and update event signatures
-// to pass Peer objects instead of endpoint strings.
+// Sprint 3 does NOT require you to change Server.cs or Client.cs at all.
+// They're already exactly what P2P needs at the transport level: Server
+// accepts many incoming connections (now from other peers instead of chat
+// clients), and Client makes an outgoing connection (now to a peer instead
+// of a server). The only change is usage - instead of one Client instance
+// talking to one server, your node creates ONE Client PER outgoing peer
+// connection, and keeps them in a dictionary keyed by peer id, right next
+// to the Server that's still accepting incoming ones. Both together make
+// your node "both a server and a client at once," which is what P2P means.
+//
+// Peer is where the NEW state Sprint 3 needs actually lives - AES session
+// key, reconnection attempts, last-seen timestamp, whether a connection
+// came in or went out. This class wraps a Server-tracked endpoint or a
+// Client instance with that metadata; it does not replace either of them.
+// You'll maintain a Dictionary<string, Peer> in Program.cs (keyed by peer
+// id from PeerDiscovery), and look up the right endpoint or Client instance
+// through it whenever you need to actually send something.
 //
 
 using System.Net;

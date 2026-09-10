@@ -1,11 +1,15 @@
 // [Your Name Here]
 // CSCI 251 - Secure Distributed Messenger
-// Group Project
 //
-// SPRINT 1: Threading & Basic Networking
-// Due: Week 5 | Work on: Weeks 3-4
-// (Continue enhancing in Sprints 2 & 3)
+// Program.cs - Entry point. Sets up the server/client, wires up events,
+// and runs the main input loop.
 //
+// Threading overview:
+//   - Main thread: reads console input, parses commands, sends messages
+//   - Server accept task: runs in background, accepts incoming connections
+//   - Receive tasks: one per connection, reads incoming messages
+//
+// See HINTS.md for how events, threading, and TCP work together.
 
 using SecureMessenger.Core;
 using SecureMessenger.Network;
@@ -14,100 +18,59 @@ using SecureMessenger.UI;
 
 namespace SecureMessenger;
 
-/// <summary>
-/// Main entry point for the Secure Distributed Messenger.
-///
-/// Architecture Overview:
-/// This application uses multiple threads to handle concurrent operations:
-///
-/// 1. Main Thread (UI Thread)
-///    - Reads user input from console
-///    - Parses commands using ConsoleUI
-///    - Dispatches commands to appropriate handlers
-///
-/// 2. Accept Thread (Server)
-///    - Runs Server to accept incoming connections
-///    - Each accepted connection spawns a receive task
-///
-/// 3. Receive Task(s)
-///    - One per connected client
-///    - Reads messages from network
-///    - Invokes OnMessageReceived event
-///
-/// 4. Client Receive Task
-///    - Reads messages from server we connected to
-///    - Invokes OnMessageReceived event
-///
-/// Thread Communication:
-/// - Use events for connection/disconnection/message notifications
-/// - Use CancellationToken for graceful shutdown
-/// - (Optional) Use MessageQueue for more complex processing pipelines
-///
-/// Sprint Progression:
-/// - Sprint 1: Basic threading and networking (connect, send, receive)
-///             Uses simple Client/Server model
-/// - Sprint 2: Add encryption (key exchange, AES encryption, signing)
-/// - Sprint 3: Upgrade to peer-to-peer model with Peer class,
-///             add peer discovery, heartbeat, and reconnection
-/// </summary>
 class Program
 {
-    // TODO: Declare your components as fields for access across methods
-    // Sprint 1-2 components:
+    // TODO: Uncomment these and use them
     // private static Server? _server;
     // private static Client? _client;
     // private static ConsoleUI? _ui;
     // private static string _username = "User";
-    //
-    // Sprint 3 additions:
-    // private static PeerDiscovery? _peerDiscovery;
-    // private static HeartbeatMonitor? _heartbeatMonitor;
 
     static async Task Main(string[] args)
     {
         Console.WriteLine("Secure Distributed Messenger");
         Console.WriteLine("============================");
 
-        // TODO: Initialize components
-        // 1. Create Server for incoming connections
-        // 2. Create Client for outgoing connection
-        // 3. Create ConsoleUI for user interface
-        // 4. (Optional) Create MessageQueue if using producer/consumer pattern
-
-        // TODO: Subscribe to events
-        // Server events:
-        // - _server.OnClientConnected += endpoint => { ... };
-        // - _server.OnClientDisconnected += endpoint => { ... };
-        // - _server.OnMessageReceived += message => { ... };
+        // TODO: Create your Server, Client, and ConsoleUI instances
         //
-        // Client events:
-        // - _client.OnConnected += endpoint => { ... };
-        // - _client.OnDisconnected += endpoint => { ... };
-        // - _client.OnMessageReceived += message => { ... };
+        // TODO: Subscribe to events so you know when things happen.
+        // For example:
+        //   _server.OnClientConnected += (endpoint) => { ... };
+        //   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
+        //   _client.OnMessageReceived += (message) => { /* display it */ };
+        //
+        // In Sprint 1, the server is a pure relay: when it receives a message,
+        // broadcast it to every connected client with Broadcast(message). Starting
+        // in Sprint 2 (chat rooms) and Sprint 3 (direct peer messages), you won't
+        // always want everyone to get it - use SendTo(endpoint, message) to send
+        // to just one client instead. That's why OnMessageReceived hands you the
+        // sending endpoint: you'll need it to decide who else should receive it.
+        //
+        // Nothing stops one process from handling both /listen and /connect - _server
+        // and _client are independent objects. For Sprint 1 and 2, don't: submit one
+        // relay process (/listen only) plus separate client processes (/connect only),
+        // per the spec. Sprint 3 flips this - a peer runs both at once on purpose.
 
         Console.WriteLine("Type /help for available commands");
         Console.WriteLine();
 
-        // Main loop - handle user input
+        // Main input loop
         bool running = true;
         while (running)
         {
-            // TODO: Implement the main input loop
-            // 1. Read a line from the console
-            // 2. Skip empty input
-            // 3. Parse the input using ConsoleUI.ParseCommand()
-            // 4. Handle the command based on CommandType:
-            //    - Connect: Call await _client.ConnectAsync(host, port)
-            //    - Listen: Call _server.Start(port)
-            //    - ListPeers: Display connection status
-            //    - History: Show message history (Sprint 3)
-            //    - Quit: Set running = false
-            //    - Not a command: Send as a message
+            // TODO: Replace this with your full implementation.
+            // Read input, parse it with ConsoleUI.ParseCommand(), then
+            // handle the result:
+            //   Listen  -> _server.Start(port)
+            //   Connect -> await _client.ConnectAsync(host, port)
+            //   Peers   -> show connection status
+            //   Quit    -> set running = false
+            //   Not a command -> send it as a chat message
 
             var input = Console.ReadLine();
             if (string.IsNullOrEmpty(input)) continue;
 
-            // Temporary basic command handling - replace with full implementation
+            // Placeholder - replace with your ParseCommand logic
             switch (input.ToLower())
             {
                 case "/quit":
@@ -118,43 +81,30 @@ class Program
                     ShowHelp();
                     break;
                 default:
-                    Console.WriteLine("Command not yet implemented. See TODO comments.");
+                    Console.WriteLine("Not yet implemented. See the TODO comments.");
                     break;
             }
         }
 
-        // TODO: Implement graceful shutdown
-        // 1. Stop the server
-        // 2. Disconnect the client
-        // 3. (Sprint 3) Stop peer discovery and heartbeat monitor
+        // TODO: Clean shutdown - stop the server, disconnect the client
 
         Console.WriteLine("Goodbye!");
     }
 
-    /// <summary>
-    /// Display help information.
-    /// Replace this with ConsoleUI.ShowHelp() once implemented.
-    /// </summary>
+    // Placeholder help - replace with ConsoleUI.ShowHelp() once you've implemented it
     private static void ShowHelp()
     {
-        Console.WriteLine("\nAvailable Commands:");
-        Console.WriteLine("  /connect <ip> <port>  - Connect to another messenger");
+        Console.WriteLine("\nCommands:");
+        Console.WriteLine("  /connect <ip> <port>  - Connect to a server");
         Console.WriteLine("  /listen <port>        - Start listening for connections");
         Console.WriteLine("  /peers                - Show connection status");
-        Console.WriteLine("  /history              - View message history (Sprint 3)");
-        Console.WriteLine("  /quit                 - Exit the application");
-        Console.WriteLine();
-        Console.WriteLine("Sprint Progression:");
-        Console.WriteLine("  Sprint 1: Basic /connect and /listen with message sending");
-        Console.WriteLine("  Sprint 2: Messages are encrypted end-to-end");
-        Console.WriteLine("  Sprint 3: Automatic peer discovery and reconnection");
+        Console.WriteLine("  /quit                 - Exit");
         Console.WriteLine();
     }
 
-    // TODO: Add helper methods as needed
-    // Examples:
-    // - HandleListen(string[] args) - start the server
-    // - HandleConnect(string[] args) - connect to a server
-    // - HandlePeers() - show connection status
-    // - SendMessage(string content) - send to all connections
+    // TODO: You'll want helper methods like:
+    //   HandleListen(args)  - start the server
+    //   HandleConnect(args) - connect to a server
+    //   HandlePeers()       - print connection info
+    //   SendMessage(text)   - create a Message and send via _client.Send()
 }
