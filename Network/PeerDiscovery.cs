@@ -39,198 +39,190 @@
 // building the same pattern, just at a much smaller scale.
 //
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
-using System.Collections.Concurrent;
 using SecureMessenger.Core;
 
 namespace SecureMessenger.Network;
 
 /// <summary>
-/// Sprint 3: Peer discovery and mesh formation.
-///
-/// Required: TCP-based bootstrap + peer exchange (Initialize,
-/// BuildPeerListMessage, ProcessPeerListMessage, RegisterPeer).
-/// Optional, not graded: UDP LAN broadcast (StartLanBroadcast and below).
+///     Sprint 3: Peer discovery and mesh formation.
+///     Required: TCP-based bootstrap + peer exchange (Initialize,
+///     BuildPeerListMessage, ProcessPeerListMessage, RegisterPeer).
+///     Optional, not graded: UDP LAN broadcast (StartLanBroadcast and below).
 /// </summary>
 public class PeerDiscovery
 {
-    private readonly ConcurrentDictionary<string, PeerInfo> _knownPeers = new();
+	private readonly int _broadcastPort = 5001;
+	private readonly ConcurrentDictionary<string, PeerInfo> _knownPeers = new();
+	private Thread? _broadcastThread;
+	private CancellationTokenSource? _cancellationTokenSource;
+	private Thread? _listenThread;
 
-    /// <summary>
-    /// Fired when a peer you didn't already know about is learned — either
-    /// because you connected to them directly (RegisterPeer) or because
-    /// another peer told you about them (ProcessPeerListMessage). Whatever
-    /// owns your TCP connections (likely Program.cs) should subscribe to
-    /// this and call Client.ConnectAsync(peer.Address, peer.Port) so the
-    /// mesh actually grows instead of just knowing names.
-    /// </summary>
-    public event Action<PeerInfo>? OnPeerDiscovered;
+	// ================================================================
+	// OPTIONAL, NOT GRADED: UDP LAN broadcast auto-discovery
+	//
+	// Everything below is untested by the grader and entirely optional.
+	// It's here in case you want a fun extra for local testing on a real
+	// LAN — just don't count on it working in Docker, a VM, or across
+	// subnets/VPNs. See the note at the top of this file for why.
+	// ================================================================
 
-    /// <summary>Fired when a peer is removed (e.g. after a heartbeat timeout).</summary>
-    public event Action<PeerInfo>? OnPeerLost;
+	private UdpClient? _udpClient;
 
-    public int TcpPort { get; private set; }
-    public string LocalPeerId { get; } = Guid.NewGuid().ToString()[..8];
+	public int TcpPort { get; private set; }
+	public string LocalPeerId { get; } = Guid.NewGuid().ToString()[..8];
 
-    // ================================================================
-    // REQUIRED: Bootstrap + Peer Exchange (TCP)
-    // ================================================================
+	/// <summary>
+	///     Fired when a peer you didn't already know about is learned — either
+	///     because you connected to them directly (RegisterPeer) or because
+	///     another peer told you about them (ProcessPeerListMessage). Whatever
+	///     owns your TCP connections (likely Program.cs) should subscribe to
+	///     this and call Client.ConnectAsync(peer.Address, peer.Port) so the
+	///     mesh actually grows instead of just knowing names.
+	/// </summary>
+	public event Action<PeerInfo>? OnPeerDiscovered;
 
-    /// <summary>
-    /// Call this once, at startup, with the same port you pass to
-    /// Server.Start(). There's nothing to connect to yet — that happens
-    /// via /connect (bootstrap) or when a PeerList message teaches you
-    /// about someone new.
-    ///
-    /// TODO: Store tcpPort in TcpPort.
-    /// </summary>
-    public void Initialize(int tcpPort)
-    {
-        throw new NotImplementedException("Implement Initialize() - see TODO in comments above");
-    }
+	/// <summary>Fired when a peer is removed (e.g. after a heartbeat timeout).</summary>
+	public event Action<PeerInfo>? OnPeerLost;
 
-    /// <summary>
-    /// Register a peer you've directly connected to (or that connected to
-    /// you) — call this from wherever your TCP connection logic lives
-    /// (Client.OnConnected / Server.OnClientConnected) once a connection
-    /// succeeds, using that connection's real remote address and the port
-    /// the peer tells you it's listening on.
-    ///
-    /// TODO:
-    /// 1. If _knownPeers already has this peer's Id, just return (nothing
-    ///    new to announce).
-    /// 2. Otherwise add it with _knownPeers.TryAdd(peer.Id, peer) and
-    ///    fire OnPeerDiscovered(peer).
-    /// </summary>
-    public void RegisterPeer(PeerInfo peer)
-    {
-        throw new NotImplementedException("Implement RegisterPeer() - see TODO in comments above");
-    }
+	// ================================================================
+	// REQUIRED: Bootstrap + Peer Exchange (TCP)
+	// ================================================================
 
-    /// <summary>
-    /// Build a Message of type MessageType.PeerList containing everyone you
-    /// currently know about, including yourself (so the receiver learns
-    /// your id and listen port, not just the peers you already know).
-    ///
-    /// TODO:
-    /// 1. Build a List&lt;PeerInfo&gt; containing _knownPeers.Values, plus one
-    ///    more PeerInfo for yourself: { Id = LocalPeerId, Port = TcpPort }
-    ///    (you can leave Address blank for yourself — the receiver already
-    ///    knows your IP from the live connection you're sending this over)
-    /// 2. Serialize that list to JSON with
-    ///    System.Text.Json.JsonSerializer.Serialize(...)
-    /// 3. Return a new Message with Type = MessageType.PeerList,
-    ///    Sender = LocalPeerId, Content = that JSON string
-    ///
-    /// Send the result over EVERY new connection, right after it's
-    /// established — both the side that dialed and the side that
-    /// accepted should send one, so peer lists spread both directions.
-    /// </summary>
-    public Message BuildPeerListMessage()
-    {
-        throw new NotImplementedException("Implement BuildPeerListMessage() - see TODO in comments above");
-    }
+	/// <summary>
+	///     Call this once, at startup, with the same port you pass to
+	///     Server.Start(). There's nothing to connect to yet — that happens
+	///     via /connect (bootstrap) or when a PeerList message teaches you
+	///     about someone new.
+	///     TODO: Store tcpPort in TcpPort.
+	/// </summary>
+	public void Initialize(int tcpPort)
+	{
+		throw new NotImplementedException("Implement Initialize() - see TODO in comments above");
+	}
 
-    /// <summary>
-    /// Handle an incoming MessageType.PeerList message from a connected
-    /// peer. This is the step that turns "I connected to one peer" into
-    /// "I'm part of the mesh": if peer B tells you about peer C, and you
-    /// don't already know C, you now do — and OnPeerDiscovered will tell
-    /// whoever's listening to go connect to them.
-    ///
-    /// TODO:
-    /// 1. Deserialize message.Content back into a List&lt;PeerInfo&gt; with
-    ///    System.Text.Json.JsonSerializer.Deserialize&lt;List&lt;PeerInfo&gt;&gt;(...)
-    /// 2. For the entry representing the sender (Id == message.Sender):
-    ///    fill in its Address from the live connection you received this
-    ///    on (you know that address directly — don't trust a self-reported
-    ///    one), then treat it like any other newly-learned peer.
-    /// 3. For every entry in the list:
-    ///    a. Skip it if Id == LocalPeerId (that's you)
-    ///    b. Skip it if _knownPeers already contains it
-    ///    c. Otherwise: _knownPeers.TryAdd(...) and fire OnPeerDiscovered
-    ///       so the caller can open a new connection to it
-    /// </summary>
-    public void ProcessPeerListMessage(Message message, IPAddress senderAddress)
-    {
-        throw new NotImplementedException("Implement ProcessPeerListMessage() - see TODO in comments above");
-    }
+	/// <summary>
+	///     Register a peer you've directly connected to (or that connected to
+	///     you) — call this from wherever your TCP connection logic lives
+	///     (Client.OnConnected / Server.OnClientConnected) once a connection
+	///     succeeds, using that connection's real remote address and the port
+	///     the peer tells you it's listening on.
+	///     TODO:
+	///     1. If _knownPeers already has this peer's Id, just return (nothing
+	///     new to announce).
+	///     2. Otherwise add it with _knownPeers.TryAdd(peer.Id, peer) and
+	///     fire OnPeerDiscovered(peer).
+	/// </summary>
+	public void RegisterPeer(PeerInfo peer)
+	{
+		throw new NotImplementedException("Implement RegisterPeer() - see TODO in comments above");
+	}
 
-    /// <summary>
-    /// Get list of known peers (for the /peers command).
-    /// </summary>
-    public IEnumerable<PeerInfo> GetKnownPeers()
-    {
-        return _knownPeers.Values.ToList();
-    }
+	/// <summary>
+	///     Build a Message of type MessageType.PeerList containing everyone you
+	///     currently know about, including yourself (so the receiver learns
+	///     your id and listen port, not just the peers you already know).
+	///     TODO:
+	///     1. Build a List&lt;PeerInfo&gt; containing _knownPeers.Values, plus one
+	///     more PeerInfo for yourself: { Id = LocalPeerId, Port = TcpPort }
+	///     (you can leave Address blank for yourself — the receiver already
+	///     knows your IP from the live connection you're sending this over)
+	///     2. Serialize that list to JSON with
+	///     System.Text.Json.JsonSerializer.Serialize(...)
+	///     3. Return a new Message with Type = MessageType.PeerList,
+	///     Sender = LocalPeerId, Content = that JSON string
+	///     Send the result over EVERY new connection, right after it's
+	///     established — both the side that dialed and the side that
+	///     accepted should send one, so peer lists spread both directions.
+	/// </summary>
+	public Message BuildPeerListMessage()
+	{
+		throw new NotImplementedException("Implement BuildPeerListMessage() - see TODO in comments above");
+	}
 
-    /// <summary>
-    /// Remove a peer, e.g. after HeartbeatMonitor.OnConnectionFailed fires.
-    ///
-    /// TODO: _knownPeers.TryRemove(...); if it was actually present, fire
-    /// OnPeerLost with the removed peer.
-    /// </summary>
-    public void RemovePeer(string peerId)
-    {
-        throw new NotImplementedException("Implement RemovePeer() - see TODO in comments above");
-    }
+	/// <summary>
+	///     Handle an incoming MessageType.PeerList message from a connected
+	///     peer. This is the step that turns "I connected to one peer" into
+	///     "I'm part of the mesh": if peer B tells you about peer C, and you
+	///     don't already know C, you now do — and OnPeerDiscovered will tell
+	///     whoever's listening to go connect to them.
+	///     TODO:
+	///     1. Deserialize message.Content back into a List&lt;PeerInfo&gt; with
+	///     System.Text.Json.JsonSerializer.Deserialize&lt;List&lt;PeerInfo&gt;&gt;(...)
+	///     2. For the entry representing the sender (Id == message.Sender):
+	///     fill in its Address from the live connection you received this
+	///     on (you know that address directly — don't trust a self-reported
+	///     one), then treat it like any other newly-learned peer.
+	///     3. For every entry in the list:
+	///     a. Skip it if Id == LocalPeerId (that's you)
+	///     b. Skip it if _knownPeers already contains it
+	///     c. Otherwise: _knownPeers.TryAdd(...) and fire OnPeerDiscovered
+	///     so the caller can open a new connection to it
+	/// </summary>
+	public void ProcessPeerListMessage(Message message, IPAddress senderAddress)
+	{
+		throw new NotImplementedException("Implement ProcessPeerListMessage() - see TODO in comments above");
+	}
 
-    // ================================================================
-    // OPTIONAL, NOT GRADED: UDP LAN broadcast auto-discovery
-    //
-    // Everything below is untested by the grader and entirely optional.
-    // It's here in case you want a fun extra for local testing on a real
-    // LAN — just don't count on it working in Docker, a VM, or across
-    // subnets/VPNs. See the note at the top of this file for why.
-    // ================================================================
+	/// <summary>
+	///     Get list of known peers (for the /peers command).
+	/// </summary>
+	public IEnumerable<PeerInfo> GetKnownPeers()
+	{
+		return _knownPeers.Values.ToList();
+	}
 
-    private UdpClient? _udpClient;
-    private CancellationTokenSource? _cancellationTokenSource;
-    private readonly int _broadcastPort = 5001;
-    private Thread? _listenThread;
-    private Thread? _broadcastThread;
+	/// <summary>
+	///     Remove a peer, e.g. after HeartbeatMonitor.OnConnectionFailed fires.
+	///     TODO: _knownPeers.TryRemove(...); if it was actually present, fire
+	///     OnPeerLost with the removed peer.
+	/// </summary>
+	public void RemovePeer(string peerId)
+	{
+		throw new NotImplementedException("Implement RemovePeer() - see TODO in comments above");
+	}
 
-    /// <summary>
-    /// Optional: start broadcasting presence and listening for other peers
-    /// on the local network. Not required, not graded.
-    ///
-    /// TODO (optional):
-    /// 1. Create a new CancellationTokenSource
-    /// 2. Create a UdpClient on _broadcastPort with broadcast enabled
-    /// 3. Start ListenLoop and BroadcastLoop on background threads
-    /// </summary>
-    public void StartLanBroadcast()
-    {
-        throw new NotImplementedException("Optional, not graded - implement only if you want LAN auto-discovery for your own testing.");
-    }
+	/// <summary>
+	///     Optional: start broadcasting presence and listening for other peers
+	///     on the local network. Not required, not graded.
+	///     TODO (optional):
+	///     1. Create a new CancellationTokenSource
+	///     2. Create a UdpClient on _broadcastPort with broadcast enabled
+	///     3. Start ListenLoop and BroadcastLoop on background threads
+	/// </summary>
+	public void StartLanBroadcast()
+	{
+		throw new NotImplementedException(
+			"Optional, not graded - implement only if you want LAN auto-discovery for your own testing.");
+	}
 
-    /// <summary>
-    /// Optional: periodically broadcast "PEER:{LocalPeerId}:{TcpPort}" to
-    /// 255.255.255.255 on _broadcastPort. Not required, not graded.
-    /// </summary>
-    private void BroadcastLoop()
-    {
-        throw new NotImplementedException("Optional, not graded - see StartLanBroadcast().");
-    }
+	/// <summary>
+	///     Optional: periodically broadcast "PEER:{LocalPeerId}:{TcpPort}" to
+	///     255.255.255.255 on _broadcastPort. Not required, not graded.
+	/// </summary>
+	private void BroadcastLoop()
+	{
+		throw new NotImplementedException("Optional, not graded - see StartLanBroadcast().");
+	}
 
-    /// <summary>
-    /// Optional: listen for "PEER:id:port" broadcasts from other peers on
-    /// the LAN and call RegisterPeer for anything new. Not required, not
-    /// graded.
-    /// </summary>
-    private void ListenLoop()
-    {
-        throw new NotImplementedException("Optional, not graded - see StartLanBroadcast().");
-    }
+	/// <summary>
+	///     Optional: listen for "PEER:id:port" broadcasts from other peers on
+	///     the LAN and call RegisterPeer for anything new. Not required, not
+	///     graded.
+	/// </summary>
+	private void ListenLoop()
+	{
+		throw new NotImplementedException("Optional, not graded - see StartLanBroadcast().");
+	}
 
-    /// <summary>
-    /// Optional: stop LAN broadcast discovery.
-    /// </summary>
-    public void StopLanBroadcast()
-    {
-        throw new NotImplementedException("Optional, not graded - cancel the token, close the UDP client, join the threads.");
-    }
+	/// <summary>
+	///     Optional: stop LAN broadcast discovery.
+	/// </summary>
+	public void StopLanBroadcast()
+	{
+		throw new NotImplementedException(
+			"Optional, not graded - cancel the token, close the UDP client, join the threads.");
+	}
 }

@@ -17,22 +17,25 @@
 namespace SecureMessenger.Core;
 
 /// <summary>
-/// Just enough information to find and connect to a peer: its id, address,
-/// and TCP listen port. Used for the PeerList message exchanged during
-/// peer discovery (Sprint 3). Not the same thing as Peer, which also holds
-/// the live socket/stream for a connection you already have.
+///     Just enough information to find and connect to a peer: its id, address,
+///     and TCP listen port. Used for the PeerList message exchanged during
+///     peer discovery (Sprint 3). Not the same thing as Peer, which also holds
+///     the live socket/stream for a connection you already have.
 /// </summary>
 public class PeerInfo
 {
-    public string Id { get; set; } = string.Empty;
-    public string Address { get; set; } = string.Empty;
-    public int Port { get; set; }
+	public string Id { get; set; } = string.Empty;
+	public string Address { get; set; } = string.Empty;
+	public int Port { get; set; }
 
-    /// <summary>Build a PeerInfo from a connected Peer, for sending to others.</summary>
-    public static PeerInfo FromPeer(Peer peer) => new()
-    {
-        Id = peer.Id,
-        Address = peer.Address?.ToString() ?? string.Empty,
-        Port = peer.Port
-    };
+	/// <summary>Build a PeerInfo from a connected Peer, for sending to others.</summary>
+	public static PeerInfo FromPeer(Peer peer)
+	{
+		return new PeerInfo
+		{
+			Id = peer.Id,
+			Address = peer.Address?.ToString() ?? string.Empty,
+			Port = peer.Port
+		};
+	}
 }

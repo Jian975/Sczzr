@@ -21,18 +21,25 @@ The starter code gives you `Server` and `Client` classes with empty methods. You
 └─────────────────┘                    └─────────────────────┘
 ```
 
-In Program.cs, you create instances of both, subscribe to their events, and wire up the input loop. When the user types `/listen`, call `_server.Start(port)`. When they type `/connect`, call `_client.ConnectAsync(host, port)`. Events fire automatically as things happen on the network.
+In Program.cs, you create instances of both, subscribe to their events, and wire up the input loop. When the user types
+`/listen`, call `_server.Start(port)`. When they type `/connect`, call `_client.ConnectAsync(host, port)`. Events fire
+automatically as things happen on the network.
 
 **Test with three terminals:**
+
 - Terminal 1: `/listen 5000` (the server, just relays messages)
 - Terminal 2: `/connect 127.0.0.1 5000` (client)
 - Terminal 3: `/connect 127.0.0.1 5000` (another client)
 
 Clients 2 and 3 chat through server 1.
 
-**Note:** nothing in `Server`/`Client` stops one process from calling both `Start()` and `ConnectAsync()` — they're independent objects, neither aware of the other. For Sprint 1 and 2 don't do this: one process should be the relay (`/listen` only), everyone else connects to it (`/connect` only). That's a project requirement, not a code restriction — the code would let you do it. Sprint 3 flips this: a peer is exactly a node doing both at once.
+**Note:** nothing in `Server`/`Client` stops one process from calling both `Start()` and `ConnectAsync()` — they're
+independent objects, neither aware of the other. For Sprint 1 and 2 don't do this: one process should be the relay
+(`/listen` only), everyone else connects to it (`/connect` only). That's a project requirement, not a code restriction —
+the code would let you do it. Sprint 3 flips this: a peer is exactly a node doing both at once.
 
 **Wiring up events:**
+
 ```csharp
 _server = new Server();
 _client = new Client();
@@ -60,16 +67,19 @@ thing (whatever it connected to), so it doesn't need that.
 An `Action<T>` is just a reference to a method. Events let one class notify another when something happens.
 
 **Declare it** (inside the class):
+
 ```csharp
 public event Action<string>? OnSomething;
 ```
 
 **Fire it** (inside the class):
+
 ```csharp
 OnSomething?.Invoke("data");
 ```
 
 **Subscribe** (from outside):
+
 ```csharp
 obj.OnSomething += (data) => { /* handle it */ };
 ```
@@ -91,13 +101,15 @@ A thread-safe queue where `Take()` blocks (waits) until something is available. 
 
 Without blocking, a consumer thread would just spin in a tight loop burning CPU while waiting for data.
 
-**Note:** You don't need MessageQueue for Sprint 1. Handling messages directly in your event handlers is simpler and works fine.
+**Note:** You don't need MessageQueue for Sprint 1. Handling messages directly in your event handlers is simpler and
+works fine.
 
 ---
 
 ## Threads and Tasks
 
 Starting background work:
+
 ```csharp
 // Option A: explicit thread
 var thread = new Thread(MethodName);
@@ -109,6 +121,7 @@ _ = Task.Run(() => DoWork());
 ```
 
 Cancellation pattern - check this in your loops:
+
 ```csharp
 while (!_cancellationTokenSource.IsCancellationRequested)
 {
@@ -133,6 +146,7 @@ lock (_clientsLock)
 ```
 
 A few rules:
+
 - Always use the **same lock object** for the same data
 - If you need to return the list contents, return a copy: `_clients.ToList()`
 - Don't hold a lock while doing slow stuff like network I/O
@@ -142,12 +156,14 @@ A few rules:
 ## TCP Basics
 
 **Server side (TcpListener):**
+
 1. Create a listener on a port
 2. `Start()` it
 3. `AcceptTcpClientAsync()` to wait for someone to connect
 4. Get a `NetworkStream` from the client, read/write bytes on it
 
 **Client side (TcpClient):**
+
 1. Create a TcpClient
 2. `ConnectAsync(host, port)`
 3. `GetStream()` gives you the NetworkStream
@@ -155,7 +171,8 @@ A few rules:
 
 **Length-prefix framing:**
 
-TCP is a byte stream - it doesn't know where one message ends and the next begins. We solve this by sending the message length first:
+TCP is a byte stream - it doesn't know where one message ends and the next begins. We solve this by sending the message
+length first:
 
 ```
 ┌─────────────┬────────────────────────────┐
@@ -165,6 +182,7 @@ TCP is a byte stream - it doesn't know where one message ends and the next begin
 ```
 
 Sending:
+
 ```csharp
 var json = JsonSerializer.Serialize(message);
 var payload = Encoding.UTF8.GetBytes(json);
@@ -175,6 +193,7 @@ stream.Write(payload, 0, payload.Length);
 ```
 
 Receiving:
+
 ```csharp
 var lengthBuffer = new byte[4];
 await stream.ReadAsync(lengthBuffer, 0, 4);
@@ -194,12 +213,15 @@ var message = JsonSerializer.Deserialize<Message>(json);
 
 1. **Null events** - Always use `?.Invoke()`, not just `Invoke()`. If nobody subscribed, the event is null.
 
-2. **Returning your internal list** - Return `_clients.ToList()` (a copy), not the list itself. Otherwise another thread could modify it while you're iterating.
+2. **Returning your internal list** - Return `_clients.ToList()` (a copy), not the list itself. Otherwise another thread
+   could modify it while you're iterating.
 
-3. **Blocking the main thread** - Network code needs to run on background threads. The main thread should only handle console input.
+3. **Blocking the main thread** - Network code needs to run on background threads. The main thread should only handle
+   console input.
 
 4. **Closed connections** - If `ReadAsync` returns 0 bytes, the other side disconnected. Handle it.
 
 5. **Race conditions** - If two threads touch the same data, use `lock` or a concurrent collection.
 
-6. **Partial reads** - `ReadAsync` might not return all the bytes you asked for in one call. You need to loop until you've read the full expected length.
+6. **Partial reads** - `ReadAsync` might not return all the bytes you asked for in one call. You need to loop until
+   you've read the full expected length.

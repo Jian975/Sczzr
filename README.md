@@ -2,7 +2,8 @@
 
 CSCI 251: Concepts of Parallel and Distributed Systems
 
-> For sprint submissions, use the `sprint-X-documentation.md` templates in the templates folder. This README is just for your GitHub repo.
+> For sprint submissions, use the `sprint-X-documentation.md` templates in the templates folder. This README is just for
+> your GitHub repo.
 
 ## Build & Run
 
@@ -75,7 +76,8 @@ Every method that throws `NotImplementedException` needs your code. The TODO com
 
 ## Getting Started
 
-If you're new to C# networking or threading, read `HINTS.md` first. It covers events, TCP sockets, threading, and how the pieces fit together.
+If you're new to C# networking or threading, read `HINTS.md` first. It covers events, TCP sockets, threading, and how
+the pieces fit together.
 
 ### Sprint 1: Threading & Networking (Week 7)
 
@@ -87,10 +89,15 @@ Get the basic client/server working: server listens and relays messages, clients
 
 Files: everything in `Security/`
 
-Add encryption on top of your Sprint 1 networking. Messages get encrypted before sending and decrypted after receiving. Key exchange happens when clients connect.
+Add encryption on top of your Sprint 1 networking. Messages get encrypted before sending and decrypted after receiving.
+Key exchange happens when clients connect.
 
 ### Sprint 3: P2P (Week 14)
 
-Files: `Network/PeerDiscovery.cs`, `Network/HeartbeatMonitor.cs`, `Network/ReconnectionPolicy.cs`, `UI/MessageHistory.cs`
+Files: `Network/PeerDiscovery.cs`, `Network/HeartbeatMonitor.cs`, `Network/ReconnectionPolicy.cs`,
+`UI/MessageHistory.cs`
 
-Move from client/server to true peer-to-peer. The required discovery mechanism is bootstrap + peer exchange: `/connect` to one known peer, then trade peer lists over that TCP connection so the mesh grows on its own (see the comment block at the top of `PeerDiscovery.cs` for why — short version: UDP broadcast doesn't survive Docker/VPNs/subnets, so it's optional and ungraded, not the required path). Add heartbeats, reconnection, and message history on top of that.
+Move from client/server to true peer-to-peer. The required discovery mechanism is bootstrap + peer exchange: `/connect`
+to one known peer, then trade peer lists over that TCP connection so the mesh grows on its own (see the comment block at
+the top of `PeerDiscovery.cs` for why — short version: UDP broadcast doesn't survive Docker/VPNs/subnets, so it's
+optional and ungraded, not the required path). Add heartbeats, reconnection, and message history on top of that.
