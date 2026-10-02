@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Jackson Welde
 // CSCI 251 - Secure Distributed Messenger
 //
 // Server.cs - TCP server that listens for connections and receives messages.
@@ -7,6 +7,7 @@
 //
 // See HINTS.md for TCP and threading reference.
 
+using System.Net;
 using System.Net.Sockets;
 using SecureMessenger.Core;
 
@@ -47,16 +48,21 @@ public class Server
 
 	/// <summary>
 	///     Start listening on the given port.
-	///     TODO:
-	///     - Save the port, create a CancellationTokenSource
-	///     - Create a TcpListener on IPAddress.Any with the port and Start() it
-	///     - Set IsListening = true
-	///     - Kick off AcceptClientsAsync on a background Task
-	///     - Print something so the user knows it's running
 	/// </summary>
 	public void Start(int port)
 	{
-		throw new NotImplementedException("Implement Start()");
+		Port =  port;
+		
+		_cancellationTokenSource = new CancellationTokenSource();
+		
+		_listener = new TcpListener(IPAddress.Any, port);
+		_listener.Start();
+		
+		IsListening = true;
+		
+		_ = AcceptClientsAsync();
+		
+		Console.WriteLine($"Server listening on port {port}");
 	}
 
 	/// <summary>
