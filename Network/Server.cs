@@ -51,34 +51,52 @@ public class Server
 	/// </summary>
 	public void Start(int port)
 	{
-		Port =  port;
-		
+		Port = port;
+
 		_cancellationTokenSource = new CancellationTokenSource();
-		
+
 		_listener = new TcpListener(IPAddress.Any, port);
 		_listener.Start();
-		
+
 		IsListening = true;
-		
+
 		_ = AcceptClientsAsync();
-		
+
 		Console.WriteLine($"Server listening on port {port}");
 	}
 
 	/// <summary>
 	///     Runs in the background, accepting clients as they connect.
-	///     TODO:
-	///     Loop until cancellation is requested. Each iteration:
-	///     - await _listener.AcceptTcpClientAsync(token)
-	///     - Grab the endpoint string from client.Client.RemoteEndPoint
-	///     - Add the client to _clients, keyed by that endpoint string (lock first!)
-	///     - Fire OnClientConnected
-	///     - Spin up ReceiveFromClientAsync for this client on another Task
-	///     Catch OperationCanceledException (that's normal shutdown, just break).
-	///     Catch anything else and log it.
 	/// </summary>
 	private async Task AcceptClientsAsync()
 	{
+		CancellationToken token = _cancellationTokenSource!.Token;
+		while (!token.IsCancellationRequested) // loops until canceled to connect any new clients
+		{
+			try
+			{
+				TcpClient client = await _listener!.AcceptTcpClientAsync(token);
+				string endpoint = client.Client.RemoteEndPoint?.ToString() ?? ""; // gets the endpoint, or "" if null
+
+				// vvv saving the new client in our clients dict
+				lock (_clientsLock)
+				{
+					_clients[endpoint] = client;
+				}
+
+				OnClientConnected?.Invoke(endpoint); // fire the event
+				_ = ReceiveFromClientAsync(client, endpoint); // start listening to the client
+			}
+			catch (ObjectDisposedException)
+			{
+				break;
+			}
+			catch (Exception exception)
+			{
+				Console.WriteLine($"Error accepting client: {exception.Message}");
+			}
+		}
+
 		throw new NotImplementedException("Implement AcceptClientsAsync()");
 	}
 
