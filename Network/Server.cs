@@ -101,6 +101,7 @@ public class Server
 	}
 
 	private const int MEGABYTE_LENGTH = 1048576;
+
 	/// <summary>
 	///     Reads messages from one client until they disconnect.
 	///     Uses length-prefix framing: first 4 bytes = payload length, then the JSON.
@@ -124,11 +125,11 @@ public class Server
 					Console.WriteLine($"Invalid message length from {endpoint}: {length}");
 					return;
 				}
-				
+
 				byte[] payload = await ReadBytesAsync(stream, length, token); // reading the payload bytes
 				// vvv converting the bytes to a message
-				string decodedPayload = Encoding.UTF8.GetString(payload);
-				Message? message = JsonSerializer.Deserialize<Message>(decodedPayload);
+				string json = Encoding.UTF8.GetString(payload);
+				Message? message = JsonSerializer.Deserialize<Message>(json);
 
 				// vvv checking that the message exists
 				if (message == null)
@@ -176,7 +177,7 @@ public class Server
 
 		return buffer;
 	}
-	
+
 	/// <summary>
 	///     Removes a client from the list and cleans up.
 	/// </summary>
@@ -187,23 +188,45 @@ public class Server
 		{
 			_clients.Remove(endpoint);
 		}
-		
+
 		client.Close();
-		
+
 		OnClientDisconnected?.Invoke(endpoint); // fire event
 	}
 
 	/// <summary>
 	///     Sends a message to every connected client.
-	///     TODO:
-	///     Serialize the message to JSON, convert to bytes, build the 4-byte length prefix.
-	///     Then grab a copy of _clients (lock!), and for each connected client, write
-	///     the length prefix + payload to their NetworkStream. If writing to one client
-	///     fails, catch the exception and keep going - don't kill the whole broadcast.
 	/// </summary>
 	public void Broadcast(Message message)
 	{
-		throw new NotImplementedException("Implement Broadcast()");
+		string json = JsonSerializer.Serialize(message);
+		byte[] payload = Encoding.UTF8.GetBytes(json);
+
+		byte[] lengthBytes = BitConverter.GetBytes(payload.Length);
+
+		// vvv copying the clients (we copy so that we don't need to lock for all the networking later)
+		TcpClient[] clients;
+		lock (_clientsLock)
+		{
+			clients = _clients.Values.ToArray();
+		}
+
+		// vvv sending the message to each client one-by-one
+		foreach (var client in clients)
+		{
+			try
+			{
+				NetworkStream stream = client.GetStream();
+				
+				// vvv writing all bytes to the client
+				stream.Write(lengthBytes, 0, lengthBytes.Length);
+				stream.Write(payload, 0, payload.Length);
+			}
+			catch (Exception exception)
+			{
+				Console.WriteLine($"Error broadcasting message: {exception.Message}");
+			}
+		}
 	}
 
 	/// <summary>
