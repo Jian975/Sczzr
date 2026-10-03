@@ -1,4 +1,4 @@
-﻿// Jackson Welde
+// Jackson Welde
 // CSCI 251 - Secure Distributed Messenger
 //
 // MessageUtils.cs - Utility class with methods for handling and converting message bytes.
