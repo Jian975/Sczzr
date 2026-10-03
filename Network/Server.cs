@@ -179,11 +179,18 @@ public class Server
 	
 	/// <summary>
 	///     Removes a client from the list and cleans up.
-	///     TODO: Lock, remove from _clients, close the client, fire OnClientDisconnected.
 	/// </summary>
 	private void DisconnectClient(TcpClient client, string endpoint)
 	{
-		throw new NotImplementedException("Implement DisconnectClient()");
+		// vvv remove client from the clients list
+		lock (_clientsLock)
+		{
+			_clients.Remove(endpoint);
+		}
+		
+		client.Close();
+		
+		OnClientDisconnected?.Invoke(endpoint); // fire event
 	}
 
 	/// <summary>
