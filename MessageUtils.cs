@@ -15,7 +15,7 @@ public class MessageUtils
 	/// <summary>
 	///     Converts the inputted message to length and payload bytes.
 	/// </summary>
-	public static (byte[] lengthBytes, byte[] payload) messageToBytes(Message message)
+	public static (byte[] lengthBytes, byte[] payload) MessageToBytes(Message message)
 	{
 		string json = JsonSerializer.Serialize(message);
 		byte[] payload = Encoding.UTF8.GetBytes(json);
@@ -28,7 +28,7 @@ public class MessageUtils
 	/// <summary>
 	///     Converts the inputted payload bytes into a message.
 	/// </summary>
-	public static Message payloadToMessage(byte[] payload)
+	public static Message PayloadToMessage(byte[] payload)
 	{
 		string json = Encoding.UTF8.GetString(payload);
 		Message? message = JsonSerializer.Deserialize<Message>(json);
@@ -65,7 +65,7 @@ public class MessageUtils
 	/// <summary>
 	///     Converts the inputted length bytes into an integer length.
 	/// </summary>
-	public static int lengthBytesToLength(byte[] lengthBytes)
+	public static int LengthBytesToLength(byte[] lengthBytes)
 	{
 		return BitConverter.ToInt32(lengthBytes, 0);
 	}
@@ -76,7 +76,7 @@ public class MessageUtils
 	///     Checks if the inputted value is valid for a message length.
 	///     True if valid; false else.
 	/// </summary>
-	public static bool isValidMessageLength(int length)
+	public static bool IsValidMessageLength(int length)
 	{
 		return length is > 0 and < MEGABYTE_LENGTH;
 	}

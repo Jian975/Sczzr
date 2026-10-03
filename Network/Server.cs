@@ -113,17 +113,17 @@ public class Server
 			while (true)
 			{
 				byte[] lengthBytes = await MessageUtils.ReadBytesAsync(stream, 4, token); // reading length bytes
-				int length = MessageUtils.lengthBytesToLength(lengthBytes); // converting length bytes to an integer
+				int length = MessageUtils.LengthBytesToLength(lengthBytes); // converting length bytes to an integer
 
 				// vvv checking that the bytes are within our size assumptions
-				if (!MessageUtils.isValidMessageLength(length))
+				if (!MessageUtils.IsValidMessageLength(length))
 				{
 					Console.WriteLine($"Invalid message length from {endpoint}: {length}");
 					return;
 				}
 
 				byte[] payload = await MessageUtils.ReadBytesAsync(stream, length, token); // reading the payload bytes
-				Message message = MessageUtils.payloadToMessage(payload);
+				Message message = MessageUtils.PayloadToMessage(payload);
 
 				OnMessageReceived?.Invoke(endpoint, message); // fire the event
 			}
@@ -161,7 +161,7 @@ public class Server
 	/// </summary>
 	public void Broadcast(Message message)
 	{
-		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
+		(byte[] lengthBytes, byte[] payload) = MessageUtils.MessageToBytes(message);
 
 		// vvv copying the clients so that we don't need to hold the lock while sending messages
 		TcpClient[] clients;
@@ -173,7 +173,7 @@ public class Server
 		// vvv sending the message to each client one-by-one
 		foreach (var client in clients)
 		{
-			attemptToSendMessage(client, lengthBytes, payload);
+			AttemptToSendMessage(client, lengthBytes, payload);
 		}
 	}
 
@@ -197,15 +197,15 @@ public class Server
 			}
 		}
 
-		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
-		attemptToSendMessage(client, lengthBytes, payload);
+		(byte[] lengthBytes, byte[] payload) = MessageUtils.MessageToBytes(message);
+		AttemptToSendMessage(client, lengthBytes, payload);
 		
 	}
 	
 	/// <summary>
 	///     Sends the inputted message bytes to the client, or prints an error on failure.
 	/// </summary>
-	private void attemptToSendMessage(TcpClient client, byte[] lengthBytes, byte[] payload)
+	private void AttemptToSendMessage(TcpClient client, byte[] lengthBytes, byte[] payload)
 	{
 		try
 		{
