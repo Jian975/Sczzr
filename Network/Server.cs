@@ -9,6 +9,8 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using SecureMessenger.Core;
 
 namespace SecureMessenger.Network;
@@ -98,26 +100,83 @@ public class Server
 		}
 	}
 
+	private const int MEGABYTE_LENGTH = 1048576;
 	/// <summary>
 	///     Reads messages from one client until they disconnect.
 	///     Uses length-prefix framing: first 4 bytes = payload length, then the JSON.
-	///     TODO:
-	///     Get the NetworkStream, allocate a 4-byte length buffer, then loop:
-	///     - Read 4 bytes for the length. If bytesRead is 0, they disconnected.
-	///     - Convert to int with BitConverter.ToInt32, sanity-check it (> 0, &lt; 1MB)
-	///     - Allocate a buffer and read the full payload. Remember that ReadAsync
-	///     might not give you everything in one call - loop until you have it all.
-	///     - Decode with Encoding.UTF8.GetString, deserialize with JsonSerializer
-	///     - Fire OnMessageReceived with (endpoint, result) - the caller needs to know
-	///     WHICH client this came from to route replies, check room membership, etc.
-	///     Wrap the whole thing in try/catch - OperationCanceledException is normal.
-	///     Always call DisconnectClient in a finally block.
 	/// </summary>
 	private async Task ReceiveFromClientAsync(TcpClient client, string endpoint)
 	{
-		throw new NotImplementedException("Implement ReceiveFromClientAsync()");
+		CancellationToken token = _cancellationTokenSource!.Token;
+
+		try
+		{
+			NetworkStream stream = client.GetStream();
+
+			while (true)
+			{
+				byte[] lengthBytes = await ReadBytesAsync(stream, 4, token); // getting the bytes with the length
+				int length = BitConverter.ToInt32(lengthBytes, 0); // converting to an integer
+
+				// vvv checking that the bytes are within our size assumptions
+				if (length <= 0 || length >= MEGABYTE_LENGTH)
+				{
+					Console.WriteLine($"Invalid message length from {endpoint}: {length}");
+					return;
+				}
+				
+				byte[] payload = await ReadBytesAsync(stream, length, token); // reading the payload bytes
+				// vvv converting the bytes to a message
+				string decodedPayload = Encoding.UTF8.GetString(payload);
+				Message? message = JsonSerializer.Deserialize<Message>(decodedPayload);
+
+				// vvv checking that the message exists
+				if (message == null)
+				{
+					Console.WriteLine($"Invalid message from {endpoint}.");
+					continue;
+				}
+
+				OnMessageReceived?.Invoke(endpoint, message); // fire the event
+			}
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception exception)
+		{
+			Console.WriteLine($"Error receiving from {endpoint}: {exception.Message}");
+		}
+		finally
+		{
+			DisconnectClient(client, endpoint);
+		}
 	}
 
+	/// <summary>
+	///     Reads the specified length bytes from the stream until all are received.
+	/// </summary>
+	private async Task<byte[]> ReadBytesAsync(NetworkStream stream, int length, CancellationToken token)
+	{
+		byte[] buffer = new byte[length];
+		int bytesRead = 0;
+
+		// vvv looping since we might not get everything in one call
+		while (bytesRead < length)
+		{
+			int read = await stream.ReadAsync(
+				buffer.AsMemory(bytesRead, length - bytesRead),
+				token);
+
+			if (read == 0)
+			{
+				throw new IOException("Client disconnected.");
+			}
+
+			bytesRead += read;
+		}
+
+		return buffer;
+	}
+	
 	/// <summary>
 	///     Removes a client from the list and cleans up.
 	///     TODO: Lock, remove from _clients, close the client, fire OnClientDisconnected.
