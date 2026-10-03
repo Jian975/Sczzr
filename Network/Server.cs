@@ -223,11 +223,23 @@ public class Server
 
 	/// <summary>
 	///     Shut everything down.
-	///     TODO: Cancel the token, stop the listener, set IsListening = false,
-	///     close all clients (with locking), clear the list.
 	/// </summary>
 	public void Stop()
 	{
-		throw new NotImplementedException("Implement Stop()");
+		_cancellationTokenSource.Cancel();
+		
+		_listener.Stop();
+		
+		IsListening = false;
+		
+		lock (_clientsLock)
+		{
+			foreach (var client in _clients.Values)
+			{
+				client.Close();
+			}
+			
+			_clients.Clear();
+		}
 	}
 }
