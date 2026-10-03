@@ -173,18 +173,7 @@ public class Server
 		// vvv sending the message to each client one-by-one
 		foreach (var client in clients)
 		{
-			try
-			{
-				NetworkStream stream = client.GetStream();
-
-				// vvv writing all bytes to the client
-				stream.Write(lengthBytes, 0, lengthBytes.Length);
-				stream.Write(payload, 0, payload.Length);
-			}
-			catch (Exception exception)
-			{
-				Console.WriteLine($"Error broadcasting message: {exception.Message}");
-			}
+			attemptToSendMessage(client, lengthBytes, payload);
 		}
 	}
 
@@ -209,8 +198,15 @@ public class Server
 		}
 
 		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
-
-		// vvv attempting to send the message
+		attemptToSendMessage(client, lengthBytes, payload);
+		
+	}
+	
+	/// <summary>
+	///     Sends the inputted message bytes to the client, or prints an error on failure.
+	/// </summary>
+	private void attemptToSendMessage(TcpClient client, byte[] lengthBytes, byte[] payload)
+	{
 		try
 		{
 			NetworkStream stream = client.GetStream();
