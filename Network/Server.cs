@@ -100,8 +100,6 @@ public class Server
 		}
 	}
 
-	private const int MEGABYTE_LENGTH = 1048576;
-
 	/// <summary>
 	///     Reads messages from one client until they disconnect.
 	///     Uses length-prefix framing: first 4 bytes = payload length, then the JSON.
@@ -116,32 +114,24 @@ public class Server
 
 			while (true)
 			{
-				byte[] lengthBytes = await ReadBytesAsync(stream, 4, token); // getting the bytes with the length
-				int length = BitConverter.ToInt32(lengthBytes, 0); // converting to an integer
+				byte[] lengthBytes = await MessageUtils.ReadBytesAsync(stream, 4, token); // reading length bytes
+				int length = MessageUtils.lengthBytesToLength(lengthBytes); // converting length bytes to an integer
 
 				// vvv checking that the bytes are within our size assumptions
-				if (length <= 0 || length >= MEGABYTE_LENGTH)
+				if (!MessageUtils.isValidMessageLength(length))
 				{
 					Console.WriteLine($"Invalid message length from {endpoint}: {length}");
 					return;
 				}
 
-				byte[] payload = await ReadBytesAsync(stream, length, token); // reading the payload bytes
-				// vvv converting the bytes to a message
-				string json = Encoding.UTF8.GetString(payload);
-				Message? message = JsonSerializer.Deserialize<Message>(json);
-
-				// vvv checking that the message exists
-				if (message == null)
-				{
-					Console.WriteLine($"Invalid message from {endpoint}.");
-					continue;
-				}
+				byte[] payload = await MessageUtils.ReadBytesAsync(stream, length, token); // reading the payload bytes
+				Message message = MessageUtils.payloadToMessage(payload);
 
 				OnMessageReceived?.Invoke(endpoint, message); // fire the event
 			}
 		}
 		catch (OperationCanceledException) { }
+		catch (IOException) { }
 		catch (Exception exception)
 		{
 			Console.WriteLine($"Error receiving from {endpoint}: {exception.Message}");
@@ -150,33 +140,6 @@ public class Server
 		{
 			DisconnectClient(client, endpoint);
 		}
-	}
-
-	/// <summary>
-	///     Reads the specified length bytes from the stream until all are received.
-	///     Helper method for ReceiveFromClientAsync().
-	/// </summary>
-	private async Task<byte[]> ReadBytesAsync(NetworkStream stream, int length, CancellationToken token)
-	{
-		byte[] buffer = new byte[length];
-		int bytesRead = 0;
-
-		// vvv looping since we might not get everything in one call
-		while (bytesRead < length)
-		{
-			int read = await stream.ReadAsync(
-				buffer.AsMemory(bytesRead, length - bytesRead),
-				token);
-
-			if (read == 0)
-			{
-				throw new IOException("Client disconnected.");
-			}
-
-			bytesRead += read;
-		}
-
-		return buffer;
 	}
 
 	/// <summary>
@@ -200,12 +163,9 @@ public class Server
 	/// </summary>
 	public void Broadcast(Message message)
 	{
-		string json = JsonSerializer.Serialize(message);
-		byte[] payload = Encoding.UTF8.GetBytes(json);
-
-		byte[] lengthBytes = BitConverter.GetBytes(payload.Length);
-
-		// vvv copying the clients (we copy so that we don't need to lock for all the networking later)
+		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
+		
+		// vvv copying the clients so that we don't need to hold the lock while sending messages
 		TcpClient[] clients;
 		lock (_clientsLock)
 		{

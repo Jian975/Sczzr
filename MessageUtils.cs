@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using SecureMessenger.Core;
 
@@ -15,10 +16,10 @@ public class MessageUtils
 		byte[] payload = Encoding.UTF8.GetBytes(json);
 
 		byte[] lengthBytes = BitConverter.GetBytes(payload.Length);
-		
+
 		return (lengthBytes, payload);
 	}
-	
+
 	/// <summary>
 	///     Converts the inputted payload bytes into a message.
 	/// </summary>
@@ -26,10 +27,36 @@ public class MessageUtils
 	{
 		string json = Encoding.UTF8.GetString(payload);
 		Message? message = JsonSerializer.Deserialize<Message>(json);
-		
+
 		return message;
 	}
-	
+
+	/// <summary>
+	///     Reads the specified length bytes from the stream until all are received.
+	/// </summary>
+	public static async Task<byte[]> ReadBytesAsync(NetworkStream stream, int length, CancellationToken token)
+	{
+		byte[] buffer = new byte[length];
+		int bytesRead = 0;
+
+		// vvv looping since we might not get everything in one call
+		while (bytesRead < length)
+		{
+			int read = await stream.ReadAsync(
+				buffer.AsMemory(bytesRead, length - bytesRead),
+				token);
+
+			if (read == 0)
+			{
+				throw new IOException("Disconnected.");
+			}
+
+			bytesRead += read;
+		}
+
+		return buffer;
+	}
+
 	/// <summary>
 	///     Converts the inputted length bytes into an integer length.
 	/// </summary>
@@ -39,6 +66,7 @@ public class MessageUtils
 	}
 
 	private const int MEGABYTE_LENGTH = 1048576;
+
 	/// <summary>
 	///     Checks if the inputted value is valid for a message length.
 	///     True if valid; false else.
