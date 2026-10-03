@@ -154,6 +154,7 @@ public class Server
 
 	/// <summary>
 	///     Reads the specified length bytes from the stream until all are received.
+	///     Helper method for ReceiveFromClientAsync().
 	/// </summary>
 	private async Task<byte[]> ReadBytesAsync(NetworkStream stream, int length, CancellationToken token)
 	{
