@@ -9,8 +9,6 @@
 
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 using SecureMessenger.Core;
 
 namespace SecureMessenger.Network;
@@ -164,7 +162,7 @@ public class Server
 	public void Broadcast(Message message)
 	{
 		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
-		
+
 		// vvv copying the clients so that we don't need to hold the lock while sending messages
 		TcpClient[] clients;
 		lock (_clientsLock)
@@ -178,7 +176,7 @@ public class Server
 			try
 			{
 				NetworkStream stream = client.GetStream();
-				
+
 				// vvv writing all bytes to the client
 				stream.Write(lengthBytes, 0, lengthBytes.Length);
 				stream.Write(payload, 0, payload.Length);
@@ -197,15 +195,34 @@ public class Server
 	///     alone can't send different content to different clients, and chat rooms
 	///     (Sprint 2+) need exactly that: a message encrypted separately per recipient,
 	///     delivered only to that recipient.
-	///     TODO:
-	///     Look up the endpoint in _clients (lock first!). If found, serialize the
-	///     message to JSON, build the length prefix, and write both to that client's
-	///     NetworkStream. If the endpoint isn't found (already disconnected), just
-	///     return - don't throw.
 	/// </summary>
 	public void SendTo(string endpoint, Message message)
 	{
-		throw new NotImplementedException("Implement SendTo()");
+		// vvv getting the client at this endpoint, or ignoring it if it already disconnected
+		TcpClient client;
+		lock (_clientsLock)
+		{
+			if (!_clients.TryGetValue(endpoint, out client))
+			{
+				return;
+			}
+		}
+
+		(byte[] lengthBytes, byte[] payload) = MessageUtils.messageToBytes(message);
+
+		// vvv attempting to send the message
+		try
+		{
+			NetworkStream stream = client.GetStream();
+
+			// vvv writing all bytes to the client
+			stream.Write(lengthBytes, 0, lengthBytes.Length);
+			stream.Write(payload, 0, payload.Length);
+		}
+		catch (Exception exception)
+		{
+			Console.WriteLine($"Error sending message: {exception.Message}");
+		}
 	}
 
 	/// <summary>
