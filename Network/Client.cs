@@ -41,11 +41,20 @@ public class Client
 	{
 		try
 		{
-			_cancellationTokenSource = new CancellationTokenSource();
+			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+			
 			var client = new TcpClient();
 			await client.ConnectAsync(host, port, _cancellationTokenSource.Token);
 			Console.WriteLine($"Connected to server at {host}:{port}");
 
+			NetworkStream stream = client.GetStream();
+			var _endpoint = client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
+
+			OnConnected?.Invoke(_endpoint);
+
+			_ = Task.Run(() => ReceiveAsync(_cancellationTokenSource.Token));
+            
+			return true;
 
         }
 		catch(SocketException) 
