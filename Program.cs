@@ -35,7 +35,7 @@ internal class Program
 		//   _server.OnClientConnected += (endpoint) => { ... };
 		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
 		//   _client.OnMessageReceived += (message) => { /* display it */ };
-		//
+		_server.OnClientConnected += (endpoint) => Console.WriteLine($"Client connected: {endpoint}");
 		// In Sprint 1, the server is a pure relay: when it receives a message,
 		// broadcast it to every connected client with Broadcast(message). Starting
 		// in Sprint 2 (chat rooms) and Sprint 3 (direct peer messages), you won't
