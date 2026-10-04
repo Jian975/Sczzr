@@ -19,8 +19,8 @@ namespace SecureMessenger;
 internal class Program
 {
 	// TODO: Uncomment these and use them
-	private static Server? _server = new Server();
-	private static Client? _client = new Client();
+	private static Server? _server;
+	private static Client? _client;
 	// private static ConsoleUI? _ui;
 	private static string _username = "User";
 
@@ -30,17 +30,23 @@ internal class Program
 		Console.WriteLine("============================");
 
 		// TODO: Create your Server, Client, and ConsoleUI instances
-		//
+		
+		_server = new Server();
+		_client = new Client();
+
 		// TODO: Subscribe to events so you know when things happen.
 		// For example:
 		//   _server.OnClientConnected += (endpoint) => { ... };
 		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
 		//   _client.OnMessageReceived += (message) => { /* display it */ };
 		_server!.OnClientConnected += (endpoint) => Console.WriteLine($"Client connected: {endpoint}");
-		_server.OnMessageReceived += (endpoint, message) => {
+		_server!.OnClientDisconnected += (endpoint) => Console.WriteLine($"Client disconnected: {endpoint}");
+		_server!.OnMessageReceived += (endpoint, message) => {
 			Console.WriteLine($"Message from {message.Sender}: {message.Content}");
-			_server.Broadcast(message);
+			_server!.Broadcast(message);
 		};
+		_client!.OnConnected += (endpoint) => Console.WriteLine($"Connected to server: {endpoint}");
+		_client!.OnDisconnected += (endpoint) => Console.WriteLine($"Disconnected from server: {endpoint}");
 		_client!.OnMessageReceived += (message) => Console.WriteLine($"{message.Sender}: {message.Content}");
 		// In Sprint 1, the server is a pure relay: when it receives a message,
 		// broadcast it to every connected client with Broadcast(message). Starting
@@ -94,7 +100,7 @@ internal class Program
 					HandleListen(tokens);
 					break;
 				case "/peers":
-					Console.WriteLine("Peers not yet implemented. See the TODO comments.");
+					HandlePeers();
 					break;
 				case "/username":
 					_username = tokens[1];
@@ -109,9 +115,13 @@ internal class Program
 			}
 		}
 
-		// TODO: Clean shutdown - stop the server, disconnect the client
-		_server?.Stop();
-		_client?.Disconnect();
+		// Clean shutdown - stop the server, disconnect the client
+		if (_server!.IsListening) {
+			_server.Stop();
+		}
+		if (_client!.IsConnected) {
+			_client.Disconnect();
+		}
 		Console.WriteLine("Goodbye!");
 	}
 
@@ -145,11 +155,4 @@ internal class Program
 	{
 		_client!.Send(new Message { Content = text, Sender = _username });
 	}
-
-
-	// TODO: You'll want helper methods like:
-	//   HandleListen(args)  - start the server
-	//   HandleConnect(args) - connect to a server
-	//   HandlePeers()       - print connection info
-	//   SendMessage(text)   - create a Message and send via _client.Send()
 }
