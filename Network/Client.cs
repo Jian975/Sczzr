@@ -96,16 +96,15 @@ public class Client
 	private async Task ReceiveAsync()
 	{
 		CancellationToken token = _cancellationTokenSource!.Token;
-        byte[] buffer = new byte[4]
+		byte[] buffer = new byte[4];
 
-		int bytesRead;
 		var responseBytes = new List<byte>();
 		try
 		{
 			while (IsConnected && !token.IsCancellationRequested)
 			{
                 // Read the 4-byte length prefix
-                byte[] prefix = MessageUtils.ReadBytesAsync(_stream, 4, token);
+                byte[] prefix = await MessageUtils.ReadBytesAsync(_stream, 4, token);
 
                 // Convert the length bytes to an integer
                 int length = MessageUtils.LengthBytesToLength(prefix);
@@ -116,7 +115,7 @@ public class Client
                     break;
 				}
 
-				byte[] payload = MessageUtils.ReadBytesAsync(_stream, length, token);
+				byte[] payload = await MessageUtils.ReadBytesAsync(_stream, length, token);
 				
 				// Deserialize the JSON into a Message
 				Message message = MessageUtils.PayloadToMessage(payload);
@@ -158,16 +157,20 @@ public class Client
 		{
 			try
 			{
-                // Convert message to bytes, and build the 4-byte length prefix
-                byte[] prefix, byte[] payload = MessageUtils.MessageToBytes(message);
+				// Convert message to bytes, and build the 4-byte length prefix
+				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
-				// Write the length prefix and payload to the stream
-				_stream.Write(prefix, 0, prefix.Length);
+                // Write the length prefix and payload to the stream
+                _stream.Write(prefix, 0, prefix.Length);
 				_stream.Write(payload, 0, payload.Length);
 			}
             catch (IOException)
             {
                 Console.WriteLine("Connection to server lost");
+            }
+			catch (NullReferenceException)
+            {
+                Console.WriteLine("Null reference occurred while sending message");
             }
             catch (Exception ex)
 			{
