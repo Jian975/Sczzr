@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Xuejian Sundvall
 // CSCI 251 - Secure Distributed Messenger
 //
 // Program.cs - Entry point. Sets up the server/client, wires up events,
@@ -11,13 +11,15 @@
 //
 // See HINTS.md for how events, threading, and TCP work together.
 
+using SecureMessenger.Network;
+
 namespace SecureMessenger;
 
 internal class Program
 {
 	// TODO: Uncomment these and use them
-	// private static Server? _server;
-	// private static Client? _client;
+	private static Server? _server = new Server();
+	private static Client? _client = new Client();
 	// private static ConsoleUI? _ui;
 	// private static string _username = "User";
 
@@ -67,9 +69,10 @@ internal class Program
 			{
 				continue;
 			}
-
+			
+			string[] tokens = input.Split(' ');
 			// Placeholder - replace with your ParseCommand logic
-			switch (input.ToLower())
+			switch (tokens[0].ToLower())
 			{
 				case "/quit":
 				case "/exit":
@@ -77,6 +80,15 @@ internal class Program
 					break;
 				case "/help":
 					ShowHelp();
+					break;
+				case "/connect":
+					HandleConnect(tokens);
+					break;
+				case "/listen":
+					HandleListen(tokens);
+					break;
+				case "/peers":
+					Console.WriteLine("Not yet implemented. See the TODO comments.");
 					break;
 				default:
 					Console.WriteLine("Not yet implemented. See the TODO comments.");
@@ -99,6 +111,27 @@ internal class Program
 		Console.WriteLine("  /quit                 - Exit");
 		Console.WriteLine();
 	}
+
+	private async static void HandleConnect(string[] args)
+	{
+		await _client!.ConnectAsync(args[1], int.Parse(args[2]));
+	}
+
+	private static void HandleListen(string[] args)
+	{
+		_server!.Start(int.Parse(args[1]));
+	}
+
+	private static void HandlePeers()
+	{
+		Console.WriteLine("Not yet implemented. See the TODO comments.");
+	}
+
+	private static void SendMessage(string text)
+	{
+		Console.WriteLine("Not yet implemented. See the TODO comments.");
+	}
+
 
 	// TODO: You'll want helper methods like:
 	//   HandleListen(args)  - start the server
