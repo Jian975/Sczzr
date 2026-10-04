@@ -11,6 +11,7 @@
 //
 // See HINTS.md for how events, threading, and TCP work together.
 
+using SecureMessenger.Core;
 using SecureMessenger.Network;
 
 namespace SecureMessenger;
@@ -21,7 +22,7 @@ internal class Program
 	private static Server? _server = new Server();
 	private static Client? _client = new Client();
 	// private static ConsoleUI? _ui;
-	// private static string _username = "User";
+	private static string _username = "User";
 
 	private static async Task Main(string[] args)
 	{
@@ -35,7 +36,12 @@ internal class Program
 		//   _server.OnClientConnected += (endpoint) => { ... };
 		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
 		//   _client.OnMessageReceived += (message) => { /* display it */ };
-		_server.OnClientConnected += (endpoint) => Console.WriteLine($"Client connected: {endpoint}");
+		_server!.OnClientConnected += (endpoint) => Console.WriteLine($"Client connected: {endpoint}");
+		_server.OnMessageReceived += (endpoint, message) => {
+			Console.WriteLine($"Message from {message.Sender}: {message.Content}");
+			_server.Broadcast(message);
+		};
+		_client!.OnMessageReceived += (message) => Console.WriteLine($"{message.Sender}: {message.Content}");
 		// In Sprint 1, the server is a pure relay: when it receives a message,
 		// broadcast it to every connected client with Broadcast(message). Starting
 		// in Sprint 2 (chat rooms) and Sprint 3 (direct peer messages), you won't
@@ -88,10 +94,17 @@ internal class Program
 					HandleListen(tokens);
 					break;
 				case "/peers":
-					Console.WriteLine("Not yet implemented. See the TODO comments.");
+					Console.WriteLine("Peers not yet implemented. See the TODO comments.");
 					break;
-				default:
-					Console.WriteLine("Not yet implemented. See the TODO comments.");
+				case "/username":
+					_username = tokens[1];
+					break;
+				default:// send as a chat message
+					if (_client!.IsConnected) {
+						SendMessage(input);
+					} else {
+						Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
+					}
 					break;
 			}
 		}
@@ -130,7 +143,7 @@ internal class Program
 
 	private static void SendMessage(string text)
 	{
-		Console.WriteLine("Not yet implemented. See the TODO comments.");
+		_client!.Send(new Message { Content = text, Sender = _username });
 	}
 
 
