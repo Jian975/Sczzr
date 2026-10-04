@@ -154,7 +154,26 @@ public class Client
 	/// </summary>
 	public void Send(Message message)
 	{
-		throw new NotImplementedException("Implement Send()");
+		if (IsConnected)
+		{
+			try
+			{
+                // Convert message to bytes, and build the 4-byte length prefix
+                byte[] prefix, byte[] payload = MessageUtils.MessageToBytes(message);
+
+				// Write the length prefix and payload to the stream
+				_stream.Write(prefix, 0, prefix.Length);
+				_stream.Write(payload, 0, payload.Length);
+			}
+            catch (IOException)
+            {
+                Console.WriteLine("Connection to server lost");
+            }
+            catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+		}
 	}
 
 	/// <summary>
