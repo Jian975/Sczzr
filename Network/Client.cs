@@ -30,7 +30,7 @@ public class Client
 
     /// <summary>
     ///     Connect to a server. Returns true on success, false on failure.
-    ///     TODO:
+    ///     td:
     ///     Create a CancellationTokenSource and a new TcpClient, then
     ///     await ConnectAsync(host, port). Grab the NetworkStream, save the
     ///     endpoint string, fire OnConnected, and start ReceiveAsync on a
@@ -84,7 +84,7 @@ public class Client
 	/// <summary>
 	///     Background receive loop. Same length-prefix framing as Server:
 	///     read 4 bytes for the length, then read that many bytes of JSON.
-	///     TODO:
+	///     td:
 	///     Allocate a 4-byte buffer. Loop while connected and not cancelled:
 	///     - Read the 4-byte length prefix. 0 bytes = server disconnected.
 	///     - Convert to int, validate it (> 0, &lt; 1MB)
@@ -147,7 +147,7 @@ public class Client
 
 	/// <summary>
 	///     Send a message to the server.
-	///     TODO:
+	///     td:
 	///     Check if we're actually connected first. Then serialize the message
 	///     to JSON, convert to bytes, build the 4-byte length prefix, and write
 	///     both to the stream. Catch and log any exceptions.
@@ -178,10 +178,15 @@ public class Client
 
 	/// <summary>
 	///     Disconnect from the server.
-	///     TODO: Cancel the token, close the stream, close the client.
+	///     td Cancel the token, close the stream, close the client.
 	/// </summary>
 	public void Disconnect()
 	{
-		throw new NotImplementedException("Implement Disconnect()");
-	}
+		_cancellationTokenSource?.Cancel();
+		_cancellationTokenSource = null;
+		_stream?.Close();
+		_stream = null;
+        _client?.Close();
+		_client = null;
+    }
 }
