@@ -39,8 +39,32 @@ public class Client
 	/// </summary>
 	public async Task<bool> ConnectAsync(string host, int port)
 	{
-		throw new NotImplementedException("Implement ConnectAsync()");
-	}
+		try
+		{
+			_cancellationTokenSource = new CancellationTokenSource();
+			var client = new TcpClient();
+			await client.ConnectAsync(host, port, _cancellationTokenSource.Token);
+			Console.WriteLine($"Connected to server at {host}:{port}");
+
+
+        }
+		catch(SocketException) 
+		{ 
+			Console.WriteLine("Could not reach server");
+			return false;
+		}
+		catch (IOException)
+		{
+			Console.WriteLine("Connection to server lost");
+			return false;
+        }
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex.Message);
+			return false;
+        }
+
+    }
 
 	/// <summary>
 	///     Background receive loop. Same length-prefix framing as Server:
