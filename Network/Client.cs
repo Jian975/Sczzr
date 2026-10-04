@@ -1,4 +1,4 @@
-// [Your Name Here]
+// [Athena Ching]
 // CSCI 251 - Secure Distributed Messenger
 //
 // Client.cs - Connects to a server and handles sending/receiving messages.
@@ -28,31 +28,37 @@ public class Client
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
 
-	/// <summary>
-	///     Connect to a server. Returns true on success, false on failure.
-	///     TODO:
-	///     Create a CancellationTokenSource and a new TcpClient, then
-	///     await ConnectAsync(host, port). Grab the NetworkStream, save the
-	///     endpoint string, fire OnConnected, and start ReceiveAsync on a
-	///     background Task. Return true.
-	///     If anything throws, log the error and return false.
-	/// </summary>
-	public async Task<bool> ConnectAsync(string host, int port)
+    /// <summary>
+    ///     Connect to a server. Returns true on success, false on failure.
+    ///     TODO:
+    ///     Create a CancellationTokenSource and a new TcpClient, then
+    ///     await ConnectAsync(host, port). Grab the NetworkStream, save the
+    ///     endpoint string, fire OnConnected, and start ReceiveAsync on a
+    ///     background Task. Return true.
+    ///     If anything throws, log the error and return false.
+    /// </summary>
+    public async Task<bool> ConnectAsync(string host, int port)
 	{
 		try
 		{
-			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-			
-			_client = new TcpClient();
-			await _client.ConnectAsync(host, port, _cancellationTokenSource.Token);
-			Console.WriteLine($"Connected to server at {host}:{port}");
+            // Create a CancellationTokenSource and a new TcpClient
+            _cancellationTokenSource = new CancellationTokenSource(); //TimeSpan.FromSeconds(5)
+            _client = new TcpClient();
 
-			_stream = _client.GetStream();
+            // Connect to the server
+            await _client.ConnectAsync(host, port, _cancellationTokenSource.Token);
+
+            // Grab the NetworkStream
+            _stream = _client.GetStream();
+
+            // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
-			OnConnected?.Invoke(_serverEndpoint);
+            // Fire the OnConnected event
+            OnConnected?.Invoke(_serverEndpoint);
 
-			_ = Task.Run(() => ReceiveAsync(_cancellationTokenSource.Token));
+            // Start ReceiveAsync on a background Task
+            _ = Task.Run(() => ReceiveAsync());
             
 			return true;
 
@@ -89,7 +95,54 @@ public class Client
 	/// </summary>
 	private async Task ReceiveAsync()
 	{
-		throw new NotImplementedException("Implement ReceiveAsync()");
+		CancellationToken token = _cancellationTokenSource!.Token;
+        byte[] buffer = new byte[4]
+
+		int bytesRead;
+		var responseBytes = new List<byte>();
+		try
+		{
+			while (IsConnected && !token.IsCancellationRequested)
+			{
+                // Read the 4-byte length prefix
+                byte[] prefix = MessageUtils.ReadBytesAsync(_stream, 4, token);
+
+                // Convert the length bytes to an integer
+                int length = MessageUtils.LengthBytesToLength(prefix);
+
+                // Validate the length (> 0 and < 1MB)
+                if (!MessageUtils.IsValidMessageLength(length))
+				{
+                    break;
+				}
+
+				byte[] payload = MessageUtils.ReadBytesAsync(_stream, length, token);
+				
+				// Deserialize the JSON into a Message
+				Message message = MessageUtils.PayloadToMessage(payload);
+				
+				// Fire the OnMessageReceived event
+				OnMessageReceived?.Invoke(message);
+            }
+		}
+		catch (OperationCanceledException)
+		{
+            // Normal shutdown
+        }
+        catch (IOException)
+        {
+            Console.WriteLine("Connection to server lost");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+		finally
+		{
+            //fire the OnDisconnected event
+            OnDisconnected?.Invoke(_serverEndpoint);
+        }
+        
 	}
 
 	/// <summary>
