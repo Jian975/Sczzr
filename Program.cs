@@ -97,7 +97,8 @@ internal class Program
 		}
 
 		// TODO: Clean shutdown - stop the server, disconnect the client
-
+		_server?.Stop();
+		_client?.Disconnect();
 		Console.WriteLine("Goodbye!");
 	}
 
