@@ -79,8 +79,24 @@ public class ConsoleUI
 			switch (parts[0].ToLower())
 			{
 				case "/connect":
+					if(parts.Length != 3)
+					{
+						res.CommandType = CommandType.Connect;
+					}
+					else
+					{
+						DisplaySystem("The /connect command takes 2 arguments: host and port");
+					}
 					break;
 				case "/listen":
+					if(parts.Length != 2)
+					{
+						res.CommandType = CommandType.Connect;
+					}
+					else
+					{
+						DisplaySystem("The /connect command takes 1 argument: port");
+					}
 					break;
 				case "/peers":
 					res.CommandType = CommandType.Peers;
