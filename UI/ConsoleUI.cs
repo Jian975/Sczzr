@@ -114,6 +114,7 @@ public class ConsoleUI
 					break;
 				default:
 					res.CommandType = CommandType.Unknown;
+					DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
 					break;
 			}
 		}
