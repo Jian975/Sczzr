@@ -101,7 +101,7 @@ internal class Program
 						HandlePeers();
 						break;
 					case CommandType.Username:
-						_username = inputCmd.Args[1];
+						_username = inputCmd.Args[0];
 						break;
 					case CommandType.Quit:
 						running = false;
@@ -111,7 +111,6 @@ internal class Program
 						break;
 					case CommandType.Unknown:
 					default:
-						_consoleUI.DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
 						break;
 				}
 			}
@@ -153,12 +152,12 @@ internal class Program
 
 	private async static void HandleConnect(string[] args)
 	{
-		await _client!.ConnectAsync(args[1], int.Parse(args[2]));
+		await _client!.ConnectAsync(args[0], int.Parse(args[1]));
 	}
 
 	private static void HandleListen(string[] args)
 	{
-		_server!.Start(int.Parse(args[1]));
+		_server!.Start(int.Parse(args[0]));
 	}
 
 	private static void HandlePeers()
