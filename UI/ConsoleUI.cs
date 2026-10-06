@@ -36,6 +36,9 @@ public class ConsoleUI
 	/// </summary>
 	public void DisplaySystem(string message)
 	{
+		String date = DateTime.Now.ToString("HH:mm:ss");
+		String msg = $"[{date}] *SYSTEM*: {message}";
+		Console.WriteLine(msg);
 		throw new NotImplementedException("Implement DisplaySystem()");
 	}
 
