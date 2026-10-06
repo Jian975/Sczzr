@@ -43,15 +43,15 @@ internal class Program
 		//   _server.OnClientConnected += (endpoint) => { ... };
 		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
 		//   _client.OnMessageReceived += (message) => { /* display it */ };
-		_server!.OnClientConnected += (endpoint) => Console.WriteLine($"Client connected: {endpoint}");
-		_server!.OnClientDisconnected += (endpoint) => Console.WriteLine($"Client disconnected: {endpoint}");
+		_server!.OnClientConnected += (endpoint) => _consoleUI.DisplaySystem($"Client connected: {endpoint}");
+		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
-			Console.WriteLine($"Message from {message.Sender}: {message.Content}");
+			_consoleUI.DisplayMessage(message);
 			_server!.Broadcast(message);
 		};
-		_client!.OnConnected += (endpoint) => Console.WriteLine($"Connected to server: {endpoint}");
-		_client!.OnDisconnected += (endpoint) => Console.WriteLine($"Disconnected from server: {endpoint}");
-		_client!.OnMessageReceived += (message) => Console.WriteLine($"{message.Sender}: {message.Content}");
+		_client!.OnConnected += (endpoint) => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
+		_client!.OnDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
+		_client!.OnMessageReceived += (message) => _consoleUI.DisplayMessage(message);
 		// In Sprint 1, the server is a pure relay: when it receives a message,
 		// broadcast it to every connected client with Broadcast(message). Starting
 		// in Sprint 2 (chat rooms) and Sprint 3 (direct peer messages), you won't
@@ -133,7 +133,7 @@ internal class Program
 		if (_client!.IsConnected) {
 			_client.Disconnect();
 		}
-		Console.WriteLine("Goodbye!");
+		_consoleUI.DisplaySystem("Goodbye!");
 	}
 
 	// Placeholder help - replace with ConsoleUI.ShowHelp() once you've implemented it

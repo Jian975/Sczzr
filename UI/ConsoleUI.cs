@@ -23,7 +23,6 @@ public class ConsoleUI
 	/// </summary>
 	public void DisplayMessage(Message message)
 	{	
-		Console.WriteLine("Displaying msg");
 		String name = message.Sender;
 		String date = message.Timestamp.ToString("HH:mm:ss");
 		String content = message.Content;
@@ -39,7 +38,7 @@ public class ConsoleUI
 	public void DisplaySystem(string message)
 	{
 		String date = DateTime.Now.ToString("HH:mm:ss");
-		String msg = $"\n[{date}]\n**SYSTEM**\n{message}\n";
+		String msg = $"\n[{date}] **SYSTEM**\n{message}\n";
 		Console.WriteLine(msg);
 		//throw new NotImplementedException("Implement DisplaySystem()");
 	}
