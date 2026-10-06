@@ -86,37 +86,44 @@ internal class Program
 				continue;
 			}
 			
-			string[] tokens = input.Split(' ');
-			// Placeholder - replace with your ParseCommand logic
-			switch (tokens[0].ToLower())
+			CommandResult inputCmd = _consoleUI.ParseCommand(input);
+			if (inputCmd.IsCommand)
 			{
-				case "/quit":
-				case "/exit":
-					running = false;
+				switch (inputCmd.CommandType)
+			{
+				case CommandType.Connect:
+					HandleConnect(inputCmd.Args);
 					break;
-				case "/help":
-					_consoleUI.ShowHelp();
+				case CommandType.Listen:
+					HandleListen(inputCmd.Args);
 					break;
-				case "/connect":
-					HandleConnect(tokens);
-					break;
-				case "/listen":
-					HandleListen(tokens);
-					break;
-				case "/peers":
+				case CommandType.Peers:
 					HandlePeers();
 					break;
-				case "/username":
-					_username = tokens[1];
+				case CommandType.Username:
+					_username = inputCmd.Args[1];
 					break;
-				default:// send as a chat message
-					if (_client!.IsConnected) {
-						SendMessage(input);
-					} else {
-						Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
-					}
+				case CommandType.Quit:
+					running = false;
+					break;
+				case CommandType.Help:
+					_consoleUI.ShowHelp();
+					break;
+				case CommandType.Unknown:
+				default:
+					_consoleUI.DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
 					break;
 			}
+			else
+			{
+				// send as a chat message
+				if (_client!.IsConnected) {
+					SendMessage(input);
+				} else {
+					Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
+				}
+			}
+			// Placeholder - replace with your ParseCommand logic
 		}
 
 		// Clean shutdown - stop the server, disconnect the client

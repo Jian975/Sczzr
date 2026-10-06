@@ -72,7 +72,6 @@ public class ConsoleUI
 	/// </summary>
 	public CommandResult ParseCommand(string input)
 	{
-		Console.WriteLine("Domer");
 		CommandResult res = new CommandResult();
 		if (input.StartsWith("/"))
 		{
@@ -107,6 +106,18 @@ public class ConsoleUI
 				case "/peers":
 					res.CommandType = CommandType.Peers;
 					break;
+				case "/username":
+					if(parts.Length != 2)
+					{
+						res.CommandType = CommandType.Username;
+						res.Args = [parts[1]];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /username command takes 1 argument: name");
+					}
+					break;
 				case "/quit":
 				case "/exit":
 					res.CommandType = CommandType.Quit;
@@ -116,7 +127,6 @@ public class ConsoleUI
 					break;
 				default:
 					res.CommandType = CommandType.Unknown;
-					DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
 					break;
 			}
 		}
@@ -136,6 +146,7 @@ public enum CommandType
 	Connect,
 	Listen,
 	Peers,
+	Username,
 	History,
 	Help,
 	Quit
