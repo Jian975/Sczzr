@@ -76,11 +76,22 @@ public class ConsoleUI
 			String[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 			switch (parts[0].ToLower())
 			{
-				case "":
+				case "/connect":
+					break;
+				case "/listen":
+					break;
+				case "/peers":
+					break;
+				case "/quit":
+				case "/exit":
+					break;
 				default:
+					break;
+				case "/help":
 					break;
 			}
 		}
+		return CommandType.Unknown;
 		//throw new NotImplementedException("Implement ParseCommand()");
 	}
 }
