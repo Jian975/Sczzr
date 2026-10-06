@@ -90,29 +90,30 @@ internal class Program
 			if (inputCmd.IsCommand)
 			{
 				switch (inputCmd.CommandType)
-			{
-				case CommandType.Connect:
-					HandleConnect(inputCmd.Args);
-					break;
-				case CommandType.Listen:
-					HandleListen(inputCmd.Args);
-					break;
-				case CommandType.Peers:
-					HandlePeers();
-					break;
-				case CommandType.Username:
-					_username = inputCmd.Args[1];
-					break;
-				case CommandType.Quit:
-					running = false;
-					break;
-				case CommandType.Help:
-					_consoleUI.ShowHelp();
-					break;
-				case CommandType.Unknown:
-				default:
-					_consoleUI.DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
-					break;
+				{
+					case CommandType.Connect:
+						HandleConnect(inputCmd.Args);
+						break;
+					case CommandType.Listen:
+						HandleListen(inputCmd.Args);
+						break;
+					case CommandType.Peers:
+						HandlePeers();
+						break;
+					case CommandType.Username:
+						_username = inputCmd.Args[1];
+						break;
+					case CommandType.Quit:
+						running = false;
+						break;
+					case CommandType.Help:
+						_consoleUI.ShowHelp();
+						break;
+					case CommandType.Unknown:
+					default:
+						_consoleUI.DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
+						break;
+				}
 			}
 			else
 			{
