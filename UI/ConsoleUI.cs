@@ -47,7 +47,8 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		throw new NotImplementedException("Implement ShowHelp()");
+		Console.WriteLine("Hello! Here is a handy list of our commands:\n/connect <host> <port>\n/listen <port>\n/peers\n/quit -quits\n/exit\n/help");
+		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
 	/// <summary>
