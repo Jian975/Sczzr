@@ -74,6 +74,7 @@ public class ConsoleUI
 		CommandResult res = new CommandResult();
 		if (input.StartsWith("/"))
 		{
+			res.IsCommand = true;
 			String[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 			switch (parts[0].ToLower())
 			{
@@ -82,16 +83,17 @@ public class ConsoleUI
 				case "/listen":
 					break;
 				case "/peers":
-				res.IsCommand = true;
+					res.CommandType = CommandType.Peers;
 					break;
 				case "/quit":
 				case "/exit":
-					res.IsCommand = true;
+					res.CommandType = CommandType.Quit;
 					break;
 				case "/help":
-					res.IsCommand = true;
+					res.CommandType = CommandType.Help;
 					break;
 				default:
+					res.CommandType = CommandType.Unknown;
 					break;
 			}
 		}
