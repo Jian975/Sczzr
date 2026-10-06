@@ -99,7 +99,7 @@ public class ConsoleUI
 					else
 					{
 						res.CommandType = CommandType.Unknown;
-						DisplaySystem("The /connect command takes 1 argument: port");
+						DisplaySystem("The /listen command takes 1 argument: port");
 					}
 					break;
 				case "/peers":
@@ -117,7 +117,12 @@ public class ConsoleUI
 					break;
 			}
 		}
-		return CommandType.Unknown;
+		else
+		{
+			res.IsCommand = false;
+			res.Message = input;
+		}
+		return res;
 		//throw new NotImplementedException("Implement ParseCommand()");
 	}
 }
