@@ -39,7 +39,7 @@ public class ConsoleUI
 		String date = DateTime.Now.ToString("HH:mm:ss");
 		String msg = $"[{date}] *SYSTEM*: {message}";
 		Console.WriteLine(msg);
-		throw new NotImplementedException("Implement DisplaySystem()");
+		//throw new NotImplementedException("Implement DisplaySystem()");
 	}
 
 	/// <summary>
