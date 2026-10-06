@@ -167,6 +167,6 @@ internal class Program
 
 	private static void SendMessage(string text)
 	{
-		_client!.Send(new Message { Content = text, Sender = _username });
+		_client!.Send(new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, });
 	}
 }
