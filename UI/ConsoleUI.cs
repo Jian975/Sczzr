@@ -82,19 +82,23 @@ public class ConsoleUI
 					if(parts.Length != 3)
 					{
 						res.CommandType = CommandType.Connect;
+						res.Args = [parts[1],parts[2]];
 					}
 					else
 					{
+						res.CommandType = CommandType.Unknown;
 						DisplaySystem("The /connect command takes 2 arguments: host and port");
 					}
 					break;
 				case "/listen":
 					if(parts.Length != 2)
 					{
-						res.CommandType = CommandType.Connect;
+						res.CommandType = CommandType.Listen;
+						res.Args = [parts[1]];
 					}
 					else
 					{
+						res.CommandType = CommandType.Unknown;
 						DisplaySystem("The /connect command takes 1 argument: port");
 					}
 					break;
