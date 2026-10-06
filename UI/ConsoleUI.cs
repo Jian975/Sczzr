@@ -3,6 +3,7 @@
 //
 // ConsoleUI.cs - Handles command parsing and message display.
 
+using Microsoft.VisualBasic;
 using SecureMessenger.Core;
 
 namespace SecureMessenger.UI;
@@ -47,7 +48,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		Console.WriteLine("Hello! Here is a handy list of our commands:\n/connect <host> <port>\n/listen <port>\n/peers\n/quit -quits\n/exit\n/help");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n/connect <host> <port>\n/listen <port>\n/peers\n/quit -quits\n/exit\n/help");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
@@ -70,7 +71,17 @@ public class ConsoleUI
 	/// </summary>
 	public CommandResult ParseCommand(string input)
 	{
-		throw new NotImplementedException("Implement ParseCommand()");
+		if (input.StartsWith("/"))
+		{
+			String[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+			switch (parts[0].ToLower())
+			{
+				case "":
+				default:
+					break;
+			}
+		}
+		//throw new NotImplementedException("Implement ParseCommand()");
 	}
 }
 
