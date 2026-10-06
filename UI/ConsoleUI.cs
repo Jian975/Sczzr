@@ -21,8 +21,13 @@ public class ConsoleUI
 	///     (message.Timestamp.ToString("HH:mm:ss") for the time)
 	/// </summary>
 	public void DisplayMessage(Message message)
-	{
-		throw new NotImplementedException("Implement DisplayMessage()");
+	{	
+		String name = message.Sender;
+		String date = message.Timestamp.ToString("HH:mm:ss");
+		String content = message.Content;
+		String msg = $"[{date}] {name}: {content}";
+		Console.WriteLine(msg);
+		// throw new NotImplementedException("Implement DisplayMessage()");
 	}
 
 	/// <summary>
