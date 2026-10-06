@@ -13,6 +13,7 @@
 
 using SecureMessenger.Core;
 using SecureMessenger.Network;
+using SecureMessenger.UI;
 
 namespace SecureMessenger;
 
@@ -24,6 +25,8 @@ internal class Program
 	// private static ConsoleUI? _ui;
 	private static string _username = "User";
 
+	private static ConsoleUI? _consoleUI;
+
 	private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
@@ -33,6 +36,7 @@ internal class Program
 		
 		_server = new Server();
 		_client = new Client();
+		_consoleUI = new ConsoleUI();
 
 		// TODO: Subscribe to events so you know when things happen.
 		// For example:
@@ -91,7 +95,7 @@ internal class Program
 					running = false;
 					break;
 				case "/help":
-					ShowHelp();
+					_consoleUI.ShowHelp();
 					break;
 				case "/connect":
 					HandleConnect(tokens);
@@ -128,12 +132,15 @@ internal class Program
 	// Placeholder help - replace with ConsoleUI.ShowHelp() once you've implemented it
 	private static void ShowHelp()
 	{
-		Console.WriteLine("\nCommands:");
-		Console.WriteLine("  /connect <ip> <port>  - Connect to a server");
-		Console.WriteLine("  /listen <port>        - Start listening for connections");
-		Console.WriteLine("  /peers                - Show connection status");
-		Console.WriteLine("  /quit                 - Exit");
-		Console.WriteLine();
+		// Console.WriteLine("\nCommands:");
+		// Console.WriteLine("  /connect <ip> <port>  - Connect to a server");
+		// Console.WriteLine("  /listen <port>        - Start listening for connections");
+		// Console.WriteLine("  /peers                - Show connection status");
+		// Console.WriteLine("  /username <name>      - Change your username");
+		// Console.WriteLine("  /quit                 - Exit");
+		// Console.WriteLine("  /exit                 - Exit");
+		// Console.WriteLine("  /help                 - Show available commands");
+		// Console.WriteLine();
 	}
 
 	private async static void HandleConnect(string[] args)

@@ -23,6 +23,7 @@ public class ConsoleUI
 	/// </summary>
 	public void DisplayMessage(Message message)
 	{	
+		Console.WriteLine("Displaying msg");
 		String name = message.Sender;
 		String date = message.Timestamp.ToString("HH:mm:ss");
 		String content = message.Content;
@@ -38,7 +39,7 @@ public class ConsoleUI
 	public void DisplaySystem(string message)
 	{
 		String date = DateTime.Now.ToString("HH:mm:ss");
-		String msg = $"[{date}] *SYSTEM*: {message}";
+		String msg = $"\n[{date}]\n**SYSTEM**\n{message}";
 		Console.WriteLine(msg);
 		//throw new NotImplementedException("Implement DisplaySystem()");
 	}
@@ -48,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n/connect <host> <port>\n/listen <port>\n/peers\n/quit -quits\n/exit\n/help");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands\n");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
@@ -71,6 +72,7 @@ public class ConsoleUI
 	/// </summary>
 	public CommandResult ParseCommand(string input)
 	{
+		Console.WriteLine("Domer");
 		CommandResult res = new CommandResult();
 		if (input.StartsWith("/"))
 		{
