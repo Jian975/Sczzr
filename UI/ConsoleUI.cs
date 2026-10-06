@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Lydia Barriga
 // CSCI 251 - Secure Distributed Messenger
 //
 // ConsoleUI.cs - Handles command parsing and message display.
