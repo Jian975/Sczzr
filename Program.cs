@@ -27,7 +27,10 @@ internal class Program
 
 	private static ConsoleUI? _consoleUI;
 
-	private static async Task Main(string[] args)
+    //this wasn't in the original code, but I added it to make the peer discovery work:
+    private static PeerDiscovery? _peerDiscovery;
+
+    private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
 		Console.WriteLine("============================");
@@ -37,13 +40,14 @@ internal class Program
 		_server = new Server();
 		_client = new Client();
 		_consoleUI = new ConsoleUI();
+		_peerDiscovery = new PeerDiscovery();
 
-		// TODO: Subscribe to events so you know when things happen.
-		// For example:
-		//   _server.OnClientConnected += (endpoint) => { ... };
-		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
-		//   _client.OnMessageReceived += (message) => { /* display it */ };
-		_server!.OnClientConnected += (endpoint) => _consoleUI.DisplaySystem($"Client connected: {endpoint}");
+        // TODO: Subscribe to events so you know when things happen.
+        // For example:
+        //   _server.OnClientConnected += (endpoint) => { ... };
+        //   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
+        //   _client.OnMessageReceived += (message) => { /* display it */ };
+        _server!.OnClientConnected += (endpoint) => _consoleUI.DisplaySystem($"Client connected: {endpoint}");
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
@@ -162,8 +166,22 @@ internal class Program
 
 	private static void HandlePeers()
 	{
-		Console.WriteLine("Not yet implemented. See the TODO comments.");
-	}
+		List<PeerInfo> peers = _peerDiscovery!.GetKnownPeers().ToList();
+		
+		if (peers.Count == 0)
+		{
+			Console.WriteLine("No known peers.");
+		}
+		else
+		{
+            foreach (var peer in peers)
+            {
+                Console.WriteLine(peer.Id);
+            }
+        }
+    }
+
+			
 
 	private static void SendMessage(string text)
 	{
