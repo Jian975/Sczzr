@@ -1,4 +1,4 @@
-// Xuejian Sundvall
+// Xuejian Sundvall (sprint 1), Athena Ching (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // Program.cs - Entry point. Sets up the server/client, wires up events,
@@ -30,6 +30,13 @@ internal class Program
     //this wasn't in the original code, but I added it to make the peer discovery work:
     private static PeerDiscovery? _peerDiscovery;
 
+    //added to keep track of the current room
+	private static string? _roomName;
+
+    //added to keep track of the current endpoint
+	private static string? _clientEndpoint;
+
+
     private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
@@ -41,18 +48,25 @@ internal class Program
 		_client = new Client();
 		_consoleUI = new ConsoleUI();
 		_peerDiscovery = new PeerDiscovery();
+		_roomName = null;
+        _clientEndpoint = null;
 
         // TODO: Subscribe to events so you know when things happen.
         // For example:
         //   _server.OnClientConnected += (endpoint) => { ... };
         //   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
         //   _client.OnMessageReceived += (message) => { /* display it */ };
-        _server!.OnClientConnected += (endpoint) => _consoleUI.DisplaySystem($"Client connected: {endpoint}");
+        _server!.OnClientConnected += (endpoint) =>
+		{
+			_consoleUI.DisplaySystem($"Client connected: {endpoint}");
+            _clientEndpoint = endpoint; // Store the endpoint
+        }
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
 			_server!.Broadcast(message);
-		};
+            _clientEndpoint = endpoint; // Store the endpoint
+        };
 		_client!.OnConnected += (endpoint) => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
 		_client!.OnDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
 		_client!.OnMessageReceived += (message) => _consoleUI.DisplayMessage(message);
@@ -113,7 +127,29 @@ internal class Program
 					case CommandType.Help:
 						_consoleUI.ShowHelp();
 						break;
-					case CommandType.Unknown:
+					case CommandType.Create:
+						CreateRoom(inputCmd.Args[0]);
+                        break;
+					case CommandType.Join:
+						AddToRoom(inputCmd.Args[0], _clientEndpoint!);
+                        break;
+					case CommandType.Leave:
+						RemoveFromRoom(inputCmd.Args[0], _clientEndpoint!);				// Handle leave command
+						break;
+					case CommandType.Rooms:
+                        ListRooms();
+                        break;
+					case CommandType.MessageRoom:
+						if (_client!.IsConnected)
+						{
+							SendToRoom(inputCmd.Args[0], inputCmd.Args[1]);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
+                        }
+                        break;
+                    case CommandType.Unknown:
 					default:
 						break;
 				}
@@ -123,6 +159,7 @@ internal class Program
 				// send as a chat message
 				if (_client!.IsConnected) {
 					SendMessage(input);
+
 				} else {
 					Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
 				}
@@ -179,12 +216,56 @@ internal class Program
                 Console.WriteLine(peer.Id);
             }
         }
-    }
-
-			
+    }			
 
 	private static void SendMessage(string text)
 	{
 		_client!.Send(new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, });
+	}
+
+	//added in sprint 2:
+
+	//create
+	private static void CreateRoom(string roomName)
+	{
+		_server!.CreateRoom(roomName);
+    }
+
+	//join
+	private static void AddToRoom(string roomName, string endpoint)
+	{
+		_server!.AddToRoom(roomName, endpoint);
+    }
+
+	//leave
+	private static void RemoveFromRoom(string roomName, string endpoint)
+	{
+		_server!.RemoveFromRoom(roomName, endpoint);
+    }
+
+	//rooms
+	private static void ListRooms()
+	{
+		List<string> rooms = _server!.ListRooms();
+		if (rooms.Count == 0)
+		{
+			Console.WriteLine("No rooms available.");
+		}
+		else
+		{
+			Console.WriteLine("Available rooms:");
+			foreach (var room in rooms)
+			{
+				Console.WriteLine($"- {room}");
+			}
+		}
+    }
+
+	//msg
+    private static void SendToRoom(string roomName, string text)
+	{
+		_server!.SendToRoom(roomName, new Message { 
+			Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName, 
+		});
 	}
 }

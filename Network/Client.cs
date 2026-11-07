@@ -28,14 +28,23 @@ public class Client
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
 
-    /// <summary>
-    ///     Connect to a server. Returns true on success, false on failure.
-    ///     td:
+    /// <summary> 
+    ///     If the connection is successful, it initializes the network stream, 
+    ///     saves the server endpoint, fires the OnConnected event, 
+    ///     and starts receiving messages in a background task. 
+    ///     If any exceptions occur during the connection process, 
+    ///     they are caught and logged, and the method returns false.
+    ///     @param host The server's hostname or IP address.
+    ///     @param port The server's port number.
+    ///     @return True if the connection is successful, false otherwise.
+    ///     
+    /// td:
     ///     Create a CancellationTokenSource and a new TcpClient, then
     ///     await ConnectAsync(host, port). Grab the NetworkStream, save the
     ///     endpoint string, fire OnConnected, and start ReceiveAsync on a
     ///     background Task. Return true.
     ///     If anything throws, log the error and return false.
+    /// 
     /// </summary>
     public async Task<bool> ConnectAsync(string host, int port)
 	{
@@ -92,6 +101,7 @@ public class Client
 	///     - Deserialize the JSON into a Message and fire OnMessageReceived
 	///     Catch OperationCanceledException (normal shutdown).
 	///     In the finally block, fire OnDisconnected.
+	///     
 	/// </summary>
 	private async Task ReceiveAsync()
 	{
@@ -119,9 +129,9 @@ public class Client
 				
 				// Deserialize the JSON into a Message
 				Message message = MessageUtils.PayloadToMessage(payload);
-				
-				// Fire the OnMessageReceived event
-				OnMessageReceived?.Invoke(message);
+
+                // Fire the OnMessageReceived event
+                OnMessageReceived?.Invoke(message);
             }
 		}
 		catch (OperationCanceledException)
@@ -179,11 +189,11 @@ public class Client
 		}
 	}
 
-	/// <summary>
-	///     Disconnect from the server.
-	///     td Cancel the token, close the stream, close the client.
-	/// </summary>
-	public void Disconnect()
+    /// <summary>
+    ///     Disconnect from the server.
+    ///     td Cancel the token, close the stream, close the client.
+    /// </summary>
+    public void Disconnect()
 	{
 		_cancellationTokenSource?.Cancel();
 		_cancellationTokenSource = null;

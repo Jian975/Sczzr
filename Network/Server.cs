@@ -26,10 +26,14 @@ public class Server
 	public int Port { get; private set; }
 	public bool IsListening { get; private set; }
 
-	/// <summary>
-	///     How many clients are currently connected.
-	/// </summary>
-	public int ClientCount
+    //TODO: modify this if needed (wasn't provided)
+    //roomname, client endpoints
+    private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
+
+    /// <summary>
+    ///     How many clients are currently connected.
+    /// </summary>
+    public int ClientCount
 	{
 		get
 		{
@@ -242,4 +246,14 @@ public class Server
 			_clients.Clear();
 		}
 	}
+
+    //TODO: implement stubs for methods needed by program.cs for sprint 2;
+	//first 4 are just manipulating/printing from dictionary, while last either just
+	//loops over SendTo or mostly copies its code
+    public void CreateRoom(string roomName) { return; }
+    public void AddToRoom(string endpoint, string roomName) { return; }
+	public void RemoveFromRoom(string endpoint, string roomName) { return; }
+    public List<String> ListRooms() { return new List<string>(); }
+    public void SendToRoom(string roomName, Message message) { return; }
+	
 }

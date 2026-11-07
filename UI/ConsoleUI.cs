@@ -150,7 +150,12 @@ public enum CommandType
 	Username,
 	History,
 	Help,
-	Quit
+	Quit//,
+		//Create,
+		//Join,
+		//Leave,
+		//Rooms,
+		//MessageRoom
 }
 
 /// <summary>
