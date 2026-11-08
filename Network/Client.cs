@@ -21,7 +21,6 @@ public class Client
 	private TcpClient? _client;
 	private string _serverEndpoint = "";
 	private NetworkStream? _stream;
-
 	public bool IsConnected => _client?.Connected ?? false;
 
 	public event Action<string>? OnConnected;
@@ -187,6 +186,12 @@ public class Client
 				Console.WriteLine(ex.Message);
 			}
 		}
+	}
+
+	//TODO: figure out a better solution
+	public string getAddress()
+	{
+		return _serverEndpoint?.ToString() ?? string.Empty;
 	}
 
     /// <summary>

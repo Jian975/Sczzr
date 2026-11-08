@@ -7,6 +7,7 @@
 //
 // See HINTS.md for TCP and threading reference.
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using SecureMessenger.Core;
@@ -29,6 +30,7 @@ public class Server
     //TODO: modify this if needed (wasn't provided)
     //roomname, client endpoints
     private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
+	
 
     /// <summary>
     ///     How many clients are currently connected.
@@ -251,8 +253,18 @@ public class Server
 	//first 4 are just manipulating/printing from dictionary, while last either just
 	//loops over SendTo or mostly copies its code
     public void CreateRoom(string roomName) { return; }
-    public void AddToRoom(string endpoint, string roomName) { return; }
-	public void RemoveFromRoom(string endpoint, string roomName) { return; }
+    public void AddToRoom(string endpoint, string roomName) { 
+		if (!_rooms.ContainsKey(roomName))
+		{
+			_rooms[roomName] = new HashSet<string>();
+		}
+		_rooms[roomName].Add(endpoint);
+		return; 
+	}
+	public void RemoveFromRoom(string endpoint, string roomName) { 
+		_rooms[roomName].Remove(endpoint);
+		return; 
+	}
     public List<String> ListRooms() { return new List<string>(); }
     public void SendToRoom(string roomName, Message message) { return; }
 	

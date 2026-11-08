@@ -30,13 +30,6 @@ internal class Program
     //this wasn't in the original code, but I added it to make the peer discovery work:
     private static PeerDiscovery? _peerDiscovery;
 
-    //added to keep track of the current room
-	private static string? _roomName;
-
-    //added to keep track of the current endpoint
-	private static string? _clientEndpoint;
-
-
     private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
@@ -48,8 +41,7 @@ internal class Program
 		_client = new Client();
 		_consoleUI = new ConsoleUI();
 		_peerDiscovery = new PeerDiscovery();
-		_roomName = null;
-        _clientEndpoint = null;
+
 
         // TODO: Subscribe to events so you know when things happen.
         // For example:
@@ -59,13 +51,11 @@ internal class Program
         _server!.OnClientConnected += (endpoint) =>
 		{
 			_consoleUI.DisplaySystem($"Client connected: {endpoint}");
-            _clientEndpoint = endpoint; // Store the endpoint
-        }
+        };
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
 			_server!.Broadcast(message);
-            _clientEndpoint = endpoint; // Store the endpoint
         };
 		_client!.OnConnected += (endpoint) => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
 		_client!.OnDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
@@ -131,10 +121,10 @@ internal class Program
 						CreateRoom(inputCmd.Args[0]);
                         break;
 					case CommandType.Join:
-						AddToRoom(inputCmd.Args[0], _clientEndpoint!);
+						AddToRoom(inputCmd.Args[0], _client.getAddress());
                         break;
 					case CommandType.Leave:
-						RemoveFromRoom(inputCmd.Args[0], _clientEndpoint!);				// Handle leave command
+						RemoveFromRoom(inputCmd.Args[0], _client.getAddress());				// Handle leave command
 						break;
 					case CommandType.Rooms:
                         ListRooms();
@@ -151,6 +141,7 @@ internal class Program
                         break;
                     case CommandType.Unknown:
 					default:
+						Console.WriteLine("Unknown command. Type /help for available commands.");
 						break;
 				}
 			}
@@ -191,7 +182,7 @@ internal class Program
 		// Console.WriteLine();
 	}
 
-	private async static void HandleConnect(string[] args)
+	private static async Task HandleConnect(string[] args)
 	{
 		await _client!.ConnectAsync(args[0], int.Parse(args[1]));
 	}
