@@ -108,10 +108,25 @@ internal class Program
 				switch (inputCmd.CommandType)
 				{
 					case CommandType.Connect:
-						await HandleConnect(inputCmd.Args!);
+						if (_client!.IsConnected)
+						{
+							Console.WriteLine("Already connected to a server.");
+						}
+						else
+						{
+							await HandleConnect(inputCmd.Args!);
+						}
+						
 						break;
 					case CommandType.Listen:
-						HandleListen(inputCmd.Args!);
+						if (_server!.IsListening)
+						{
+							Console.WriteLine("Server is already listening.");
+						}
+						else
+						{
+							HandleListen(inputCmd.Args!);
+						}
 						break;
 					case CommandType.Peers:
 						HandlePeers();
