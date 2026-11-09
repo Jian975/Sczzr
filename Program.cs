@@ -55,7 +55,15 @@ internal class Program
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
-			_server!.Broadcast(message);
+			//if message to room then broadcast to that group only
+			if (message.RoomName != null && message.RoomName != "")
+			{
+				_server!.BroadcastToRoom(message.RoomName, message);
+			}
+			else
+			{
+				_server!.Broadcast(message);
+			}
         };
 		_client!.OnConnected += (endpoint) => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
 		_client!.OnDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
@@ -100,16 +108,16 @@ internal class Program
 				switch (inputCmd.CommandType)
 				{
 					case CommandType.Connect:
-						HandleConnect(inputCmd.Args);
+						await HandleConnect(inputCmd.Args!);
 						break;
 					case CommandType.Listen:
-						HandleListen(inputCmd.Args);
+						HandleListen(inputCmd.Args!);
 						break;
 					case CommandType.Peers:
 						HandlePeers();
 						break;
 					case CommandType.Username:
-						_username = inputCmd.Args[0];
+						_username = inputCmd.Args![0];
 						break;
 					case CommandType.Quit:
 						running = false;
@@ -118,13 +126,13 @@ internal class Program
 						_consoleUI.ShowHelp();
 						break;
 					case CommandType.Create:
-						CreateRoom(inputCmd.Args[0]);
+						CreateRoom(inputCmd.Args![0]);
                         break;
 					case CommandType.Join:
-						AddToRoom(inputCmd.Args[0], _client.getAddress());
+						AddToRoom(inputCmd.Args![0], _client.getAddress());
                         break;
 					case CommandType.Leave:
-						RemoveFromRoom(inputCmd.Args[0], _client.getAddress());				// Handle leave command
+						RemoveFromRoom(inputCmd.Args![0], _client.getAddress());				// Handle leave command
 						break;
 					case CommandType.Rooms:
                         ListRooms();
@@ -132,7 +140,7 @@ internal class Program
 					case CommandType.MessageRoom:
 						if (_client!.IsConnected)
 						{
-							SendToRoom(inputCmd.Args[0], inputCmd.Args[1]);
+							SendToRoom(inputCmd.Args![0], inputCmd.Args![1]);
                         }
                         else
                         {
@@ -166,20 +174,6 @@ internal class Program
 			_client.Disconnect();
 		}
 		_consoleUI.DisplaySystem("Goodbye!");
-	}
-
-	// Placeholder help - replace with ConsoleUI.ShowHelp() once you've implemented it
-	private static void ShowHelp()
-	{
-		// Console.WriteLine("\nCommands:");
-		// Console.WriteLine("  /connect <ip> <port>  - Connect to a server");
-		// Console.WriteLine("  /listen <port>        - Start listening for connections");
-		// Console.WriteLine("  /peers                - Show connection status");
-		// Console.WriteLine("  /username <name>      - Change your username");
-		// Console.WriteLine("  /quit                 - Exit");
-		// Console.WriteLine("  /exit                 - Exit");
-		// Console.WriteLine("  /help                 - Show available commands");
-		// Console.WriteLine();
 	}
 
 	private static async Task HandleConnect(string[] args)
@@ -255,7 +249,7 @@ internal class Program
 	//msg
     private static void SendToRoom(string roomName, string text)
 	{
-		_server!.SendToRoom(roomName, new Message { 
+		_client!.Send(new Message { 
 			Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName, 
 		});
 	}

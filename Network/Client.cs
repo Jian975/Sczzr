@@ -23,6 +23,8 @@ public class Client
 	private NetworkStream? _stream;
 	public bool IsConnected => _client?.Connected ?? false;
 
+	public string currentChatRoom { get; set; } = string.Empty;
+
 	public event Action<string>? OnConnected;
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
@@ -191,7 +193,7 @@ public class Client
 	//TODO: figure out a better solution
 	public string getAddress()
 	{
-		return _serverEndpoint?.ToString() ?? string.Empty;
+		return _client?.Client.RemoteEndPoint?.ToString() ?? string.Empty;
 	}
 
     /// <summary>

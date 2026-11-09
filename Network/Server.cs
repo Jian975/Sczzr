@@ -266,6 +266,6 @@ public class Server
 		return; 
 	}
     public List<String> ListRooms() { return new List<string>(); }
-    public void SendToRoom(string roomName, Message message) { return; }
+    public void BroadcastToRoom(string roomName, Message message) { return; }
 	
 }
