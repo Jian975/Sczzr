@@ -7,8 +7,12 @@
 // Test setup: Terminal 1 runs /listen, Terminal 2 runs /connect
 // See HINTS.md for TCP and length-prefix framing reference.
 
+using System.Collections.Concurrent;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using SecureMessenger.Core;
+using SecureMessenger.Security;
 
 namespace SecureMessenger.Network;
 
@@ -22,12 +26,15 @@ public class Client
 	private string _serverEndpoint = "";
 	private NetworkStream? _stream;
 	public bool IsConnected => _client?.Connected ?? false;
-
-	public string currentChatRoom { get; set; } = string.Empty;
-
 	public event Action<string>? OnConnected;
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
+
+	// Peer ID (or Endpoint) -> Shared AES Key/IV
+	private readonly ConcurrentDictionary<string, AesEncryption> _sessionKeys = new ConcurrentDictionary<string, AesEncryption>();
+
+	private RsaEncryption _rsaEncryption;
+	private MessageSigner _messageSigner;
 
     /// <summary> 
     ///     If the connection is successful, it initializes the network stream, 
@@ -64,6 +71,8 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
+			_rsaEncryption = new RsaEncryption();
+			_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
             // Fire the OnConnected event
             OnConnected?.Invoke(_serverEndpoint);
 
@@ -115,7 +124,7 @@ public class Client
 			while (IsConnected && !token.IsCancellationRequested)
 			{
                 // Read the 4-byte length prefix
-                byte[] prefix = await MessageUtils.ReadBytesAsync(_stream, 4, token);
+                byte[] prefix = await MessageUtils.ReadBytesAsync(_stream!, 4, token);
 
                 // Convert the length bytes to an integer
                 int length = MessageUtils.LengthBytesToLength(prefix);
@@ -126,7 +135,7 @@ public class Client
                     break;
 				}
 
-				byte[] payload = await MessageUtils.ReadBytesAsync(_stream, length, token);
+				byte[] payload = await MessageUtils.ReadBytesAsync(_stream!, length, token);
 				
 				// Deserialize the JSON into a Message
 				Message message = MessageUtils.PayloadToMessage(payload);
@@ -172,8 +181,7 @@ public class Client
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
                 // Write the length prefix and payload to the stream
-                _stream.Write(prefix, 0, prefix.Length);
-				_stream.Write(payload, 0, payload.Length);
+                _stream!.Write(prefix.Concat(payload).ToArray(), 0, prefix.Length + payload.Length);
 			}
             catch (IOException)
             {
@@ -184,6 +192,44 @@ public class Client
                 Console.WriteLine("Null reference occurred while sending message");
             }
             catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+		}
+	}
+
+	public void SendTo(string endpoint, Message message)
+	{
+		if (IsConnected)
+		{
+			try
+			{
+				if (!_sessionKeys.ContainsKey(endpoint))
+				{
+					Console.WriteLine("No session key found for the specified endpoint");
+					return;
+				}
+
+				var (prefix, payload) = MessageUtils.MessageToBytes(message);
+
+				//encrypt with receiver's aes key
+				var aes = _sessionKeys[endpoint];
+				byte[] encryptedPayload = aes.Encrypt(Encoding.UTF8.GetString(payload));
+				byte[] encryptedPrefix = BitConverter.GetBytes(encryptedPayload.Length);
+
+				byte[] signature = _messageSigner.SignData(encryptedPayload);
+				_stream!.Write(encryptedPrefix.Concat(encryptedPayload).Concat(signature).ToArray(), 
+								0, encryptedPrefix.Length + signature.Length);
+			}
+			catch (IOException)
+			{
+				Console.WriteLine("Connection to server lost");
+			}
+			catch (NullReferenceException)
+			{
+				Console.WriteLine("Null reference occurred while sending message");
+			}
+			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
 			}

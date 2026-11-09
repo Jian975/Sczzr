@@ -267,5 +267,14 @@ public class Server
 	}
     public List<String> ListRooms() { return new List<string>(); }
     public void BroadcastToRoom(string roomName, Message message) { return; }
+
+	public HashSet<String> GetRoomMembers(string roomName)
+	{
+		if (_rooms.ContainsKey(roomName))
+		{
+			return _rooms[roomName];
+		}
+		return new HashSet<string>();
+	}
 	
 }

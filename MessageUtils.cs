@@ -33,7 +33,7 @@ public class MessageUtils
 		string json = Encoding.UTF8.GetString(payload);
 		Message? message = JsonSerializer.Deserialize<Message>(json);
 
-		return message;
+		return message!;
 	}
 
 	/// <summary>

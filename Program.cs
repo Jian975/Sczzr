@@ -30,6 +30,7 @@ internal class Program
     //this wasn't in the original code, but I added it to make the peer discovery work:
     private static PeerDiscovery? _peerDiscovery;
 
+
     private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
@@ -262,10 +263,16 @@ internal class Program
     }
 
 	//msg
+	//TODO: set security fields
     private static void SendToRoom(string roomName, string text)
 	{
-		_client!.Send(new Message { 
-			Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName, 
-		});
+		var members = _server!.GetRoomMembers(roomName);
+		foreach (var member in members)
+		{
+			_client!.SendTo(member, new Message { 
+				Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName, 
+			});
+		}
+
 	}
 }
