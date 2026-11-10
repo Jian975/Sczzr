@@ -71,8 +71,9 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
-			_rsaEncryption = new RsaEncryption();
-			_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
+			//todo: uncomment these lines once encryption doesn't throw an not implemented err
+			//_rsaEncryption = new RsaEncryption();
+			//_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
             // Fire the OnConnected event
             OnConnected?.Invoke(_serverEndpoint);
 

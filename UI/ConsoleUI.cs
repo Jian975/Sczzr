@@ -168,7 +168,7 @@ public class ConsoleUI
 					if(parts.Length >= 3)
 					{
 						res.CommandType = CommandType.MessageRoom;
-						res.Args = parts[1..];
+						res.Args = [parts[1], string.Join(" ", parts.Skip(2))];
 					}
 					else
 					{

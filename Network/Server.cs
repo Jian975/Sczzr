@@ -253,7 +253,6 @@ public class Server
 	//first 4 are just manipulating/printing from dictionary, while last either just
 	//loops over SendTo or mostly copies its code
     public void CreateRoom(string roomName) {
-		Console.WriteLine($"Creating room: {roomName}");
 		if (!_rooms.ContainsKey(roomName))
 		{
 			//todo: print err msg if this fails
@@ -269,7 +268,7 @@ public class Server
 		_rooms[roomName].Remove(endpoint);
 		return; 
 	}
-    public List<String> ListRooms() {
+    public List<string> ListRooms() {
 		return _rooms.Keys.ToList();
 	}
     public void BroadcastToRoom(string roomName, Message message) {
@@ -278,14 +277,4 @@ public class Server
 			SendTo(endpoint, message);
 		}
 	}
-
-	public HashSet<String> GetRoomMembers(string roomName)
-	{
-		if (_rooms.ContainsKey(roomName))
-		{
-			return _rooms[roomName];
-		}
-		return new HashSet<string>();
-	}
-	
 }

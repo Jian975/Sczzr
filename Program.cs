@@ -58,7 +58,6 @@ internal class Program
 			_consoleUI.DisplayMessage(message);
 			if (message.Type == MessageType.Instruction)
 			{
-				Console.WriteLine($"Received instruction: {message.Content} for room: {message.RoomName}");
 				// Handle room creation, joining, leaving, and listing commands
 				switch (message.Content)
 				{
@@ -73,7 +72,6 @@ internal class Program
 						break;
 					case "list":
 						var rooms = _server!.ListRooms();
-						Console.WriteLine($"Listing rooms: {string.Join(", ", rooms)}");
 						var roomListMessage = new Message
 						{
 							Sender = "Server",
@@ -81,7 +79,6 @@ internal class Program
 							Type = MessageType.Text,
 							Timestamp = DateTime.Now
 						};
-						Console.WriteLine($"Sending room list message: {roomListMessage.Content} to client: {endpoint}");
 						_server!.SendTo(endpoint, roomListMessage);
 						break;
 					default:
@@ -262,7 +259,6 @@ internal class Program
 	//create
 	private static void CreateRoom(string roomName)
 	{
-		Console.WriteLine($"Sending create room message: {roomName} to server");
 		_client!.Send(new Message { Content = "create", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
@@ -288,13 +284,6 @@ internal class Program
 	//TODO: set security fields
     private static void SendToRoom(string roomName, string text)
 	{
-		var members = _server!.GetRoomMembers(roomName);
-		foreach (var member in members)
-		{
-			_client!.SendTo(member, new Message { 
-				Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName, 
-			});
-		}
-
+		_client!.Send(new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 }
