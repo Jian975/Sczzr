@@ -3,6 +3,7 @@
 //
 // ConsoleUI.cs - Handles command parsing and message display.
 
+using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualBasic;
 using SecureMessenger.Core;
 
@@ -48,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create #room         - Exit\n  /join #room           - Exit\n  /leave #room          - Exit\n  /rooms                - Exit\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
