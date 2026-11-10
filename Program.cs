@@ -56,8 +56,41 @@ internal class Program
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
+			if (message.Type == MessageType.Instruction)
+			{
+				Console.WriteLine($"Received instruction: {message.Content} for room: {message.RoomName}");
+				// Handle room creation, joining, leaving, and listing commands
+				switch (message.Content)
+				{
+					case "create":
+						_server!.CreateRoom(message.RoomName!);
+						break;
+					case "join":
+						_server!.AddToRoom(endpoint, message.RoomName!);
+						break;
+					case "leave":
+						_server!.RemoveFromRoom(endpoint, message.RoomName!);
+						break;
+					case "list":
+						var rooms = _server!.ListRooms();
+						Console.WriteLine($"Listing rooms: {string.Join(", ", rooms)}");
+						var roomListMessage = new Message
+						{
+							Sender = "Server",
+							Content = string.Join(", ", rooms),
+							Type = MessageType.Text,
+							Timestamp = DateTime.Now
+						};
+						Console.WriteLine($"Sending room list message: {roomListMessage.Content} to client: {endpoint}");
+						_server!.SendTo(endpoint, roomListMessage);
+						break;
+					default:
+						_consoleUI.DisplaySystem($"Unknown instruction: {message.Content}");
+						break;
+				}
+			}
 			//if message to room then broadcast to that group only
-			if (message.RoomName != null && message.RoomName != "")
+			else if (message.RoomName != null && message.RoomName != "")
 			{
 				_server!.BroadcastToRoom(message.RoomName, message);
 			}
@@ -229,38 +262,27 @@ internal class Program
 	//create
 	private static void CreateRoom(string roomName)
 	{
-		_server!.CreateRoom(roomName);
+		Console.WriteLine($"Sending create room message: {roomName} to server");
+		_client!.Send(new Message { Content = "create", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//join
 	private static void AddToRoom(string roomName, string endpoint)
 	{
-		_server!.AddToRoom(roomName, endpoint);
+		_client!.Send(new Message { Content = "join", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//leave
 	private static void RemoveFromRoom(string roomName, string endpoint)
 	{
-		_server!.RemoveFromRoom(roomName, endpoint);
+		_client!.Send(new Message { Content = "leave", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//rooms
 	private static void ListRooms()
 	{
-		List<string> rooms = _server!.ListRooms();
-		if (rooms.Count == 0)
-		{
-			Console.WriteLine("No rooms available.");
-		}
-		else
-		{
-			Console.WriteLine("Available rooms:");
-			foreach (var room in rooms)
-			{
-				Console.WriteLine($"- {room}");
-			}
-		}
-    }
+		_client!.Send(new Message { Content = "list", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
+	}
 
 	//msg
 	//TODO: set security fields

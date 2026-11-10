@@ -48,7 +48,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands\n  /create <roomname>    - Create a new chat room\n  /join <roomname>      - Join an existing chat room\n  /leave <roomname>     - Leave a chat room\n  /rooms                - List all available chat rooms\n  /msg <roomname> <message> - Send a message to a specific chat room");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
@@ -124,6 +124,57 @@ public class ConsoleUI
 					break;
 				case "/help":
 					res.CommandType = CommandType.Help;
+					break;
+				case "/create":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Create;
+						res.Args = [parts[1]];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /create command takes 1 argument: room name");
+					}
+					break;
+				case "/join":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Join;
+						res.Args = [parts[1]];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /join command takes 1 argument: room name");
+					}
+					break;
+				case "/leave":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Leave;
+						res.Args = [parts[1]];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /leave command takes 1 argument: room name");
+					}
+					break;
+				case "/rooms":
+					res.CommandType = CommandType.Rooms;
+					break;
+				case "/msg":
+					if(parts.Length >= 3)
+					{
+						res.CommandType = CommandType.MessageRoom;
+						res.Args = parts[1..];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /msg command takes at least 2 arguments: room name and message");
+					}
 					break;
 				default:
 					res.CommandType = CommandType.Unknown;

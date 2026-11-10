@@ -253,9 +253,11 @@ public class Server
 	//first 4 are just manipulating/printing from dictionary, while last either just
 	//loops over SendTo or mostly copies its code
     public void CreateRoom(string roomName) {
+		Console.WriteLine($"Creating room: {roomName}");
 		if (!_rooms.ContainsKey(roomName))
 		{
-			_rooms[roomName] = new HashSet<string>();
+			//todo: print err msg if this fails
+			_rooms.TryAdd(roomName, new HashSet<string>());
 		}
 	}
     public void AddToRoom(string endpoint, string roomName) { 

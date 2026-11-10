@@ -19,7 +19,8 @@ public enum MessageType
 	KeyExchange, // Sprint 2: Public key exchange
 	SessionKey, // Sprint 2: Encrypted session key
 	Heartbeat, // Sprint 3: Connection health check
-	PeerList // Sprint 3: Required peer-exchange gossip (PeerDiscovery.BuildPeerListMessage)
+	PeerList, // Sprint 3: Required peer-exchange gossip (PeerDiscovery.BuildPeerListMessage)
+	Instruction // Added in spring 2 to define room creation, joining, leaving, and listing commands
 }
 
 /// <summary>
