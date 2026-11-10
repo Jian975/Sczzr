@@ -252,12 +252,14 @@ public class Server
     //TODO: implement stubs for methods needed by program.cs for sprint 2;
 	//first 4 are just manipulating/printing from dictionary, while last either just
 	//loops over SendTo or mostly copies its code
-    public void CreateRoom(string roomName) { return; }
-    public void AddToRoom(string endpoint, string roomName) { 
+    public void CreateRoom(string roomName) {
 		if (!_rooms.ContainsKey(roomName))
 		{
 			_rooms[roomName] = new HashSet<string>();
 		}
+	}
+    public void AddToRoom(string endpoint, string roomName) { 
+		CreateRoom(roomName); //only creates if it doesn't exist
 		_rooms[roomName].Add(endpoint);
 		return; 
 	}
@@ -265,8 +267,15 @@ public class Server
 		_rooms[roomName].Remove(endpoint);
 		return; 
 	}
-    public List<String> ListRooms() { return new List<string>(); }
-    public void BroadcastToRoom(string roomName, Message message) { return; }
+    public List<String> ListRooms() {
+		return _rooms.Keys.ToList();
+	}
+    public void BroadcastToRoom(string roomName, Message message) {
+		foreach (string endpoint in _rooms[roomName])
+		{
+			SendTo(endpoint, message);
+		}
+	}
 
 	public HashSet<String> GetRoomMembers(string roomName)
 	{
