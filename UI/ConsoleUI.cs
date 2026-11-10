@@ -49,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create #room         - Exit\n  /join #room           - Exit\n  /leave #room          - Exit\n  /rooms                - Exit\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
@@ -103,6 +103,48 @@ public class ConsoleUI
 						res.CommandType = CommandType.Unknown;
 						DisplaySystem("The /listen command takes 1 argument: port");
 					}
+					break;
+				case "/create":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Create;
+						res.Args = [parts[1]];
+						Console.WriteLine(parts[1]);
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /create command takes 1 argument: room");
+					}
+					break;
+				case "/join":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Join;
+						res.Args = [parts[1]];
+						Console.WriteLine(parts[1]);
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /join command takes 1 argument: room");
+					}
+					break;
+				case "/leave":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Leave;
+						res.Args = [parts[1]];
+						Console.WriteLine(parts[1]);
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /leave command takes 1 argument: room");
+					}
+					break;
+				case "/rooms":
+					res.CommandType = CommandType.Rooms;
 					break;
 				case "/peers":
 					res.CommandType = CommandType.Peers;
