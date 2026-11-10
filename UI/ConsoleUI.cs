@@ -3,6 +3,7 @@
 //
 // ConsoleUI.cs - Handles command parsing and message display.
 
+using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualBasic;
 using SecureMessenger.Core;
 
@@ -48,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands\n  /create <roomname>    - Create a new chat room\n  /join <roomname>      - Join an existing chat room\n  /leave <roomname>     - Leave a chat room\n  /rooms                - List all available chat rooms\n  /msg <roomname> <message> - Send a message to a specific chat room");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
