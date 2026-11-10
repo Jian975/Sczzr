@@ -49,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /msg <room> <msg>     - Send a message to a room\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
