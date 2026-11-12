@@ -41,7 +41,7 @@ public class Client
 
 	private RsaEncryption rsaEncryption {get; set;}
 
-	private ConcurrentDictionary<string, byte[]> _publicKeys = new ConcurrentDictionary<string, byte[]>();
+	private ConcurrentDictionary<string, byte[]> _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
 
 	public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
 
@@ -102,8 +102,8 @@ public class Client
 				Type = MessageType.KeyExchange,
 				Timestamp = DateTime.Now
 			};
-			Send(keyExchange);
 			
+			Send(keyExchange);
 
             // Start ReceiveAsync on a background Task
             _ = Task.Run(() => ReceiveAsync());
@@ -169,6 +169,22 @@ public class Client
 				// Deserialize the JSON into a Message
 				Message message = MessageUtils.PayloadToMessage(payload);
 
+				if (message.Type == MessageType.KeyExchange)
+				{
+					string content = message.Content;
+					string[] pairs = content.Split(',');
+					foreach (var pair in pairs)
+					{
+						var keyValue = pair.Split(':');
+						if (keyValue.Length == 2)
+						{
+							string username = keyValue[0];
+							string publicKey = keyValue[1];
+							// Process each key-value pair as needed
+							_peerPublicKeys[username] = Convert.FromBase64String(publicKey);
+						}
+					}
+				}
                 // Fire the OnMessageReceived event
                 OnMessageReceived?.Invoke(message);
             }
@@ -242,9 +258,8 @@ public class Client
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
 				// Encrypt the payload with the receiver's AES key
-				var rsaEncryption = new RsaEncryption();
-				byte[] rsaPublicKey = rsaEncryption.ExportPublicKey();
-				var aes = new AesEncryption(rsaPublicKey);
+				RsaEncryption rsaEncryption = new RsaEncryption();
+				//byte[] peerPublicKey = 
 
 
 				//encrypt with receiver's aes key
