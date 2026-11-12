@@ -36,12 +36,15 @@ public class KeyExchange
 	private byte[]? _peerPublicKey;
 	private RsaEncryption? _rsa;
 	
+	/// <summary>
+	///     Initialize the key exchange by creating our RSA key pair.
+	/// </summary>
 	public KeyExchange()
 	{
 		_rsa = new RsaEncryption();
 	}
 
-	public ConnectionState State { get; } = ConnectionState.Disconnected;
+	public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
 	public byte[]? SessionKey { get; }
 
 	/// <summary>
@@ -51,13 +54,11 @@ public class KeyExchange
 
 	/// <summary>
 	///     Get our public key to send to the peer.
-	///     TODO: Implement the following:
-	///     1. Update State to SendingPublicKey
-	///     2. Return our public key using _rsa.ExportPublicKey()
 	/// </summary>
 	public byte[] GetPublicKey()
 	{
-		throw new NotImplementedException("Implement GetPublicKey() - see TODO in comments above");
+		State = ConnectionState.SendingPublicKey;
+		return _rsa!.ExportPublicKey();
 	}
 
 	/// <summary>
