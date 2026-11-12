@@ -35,7 +35,8 @@ public class RsaEncryption
 	public RsaEncryption()
 	{
 		// TODO: Generate RSA key pair (2048 bits)
-		throw new NotImplementedException("Implement constructor - create RSA key pair");
+		RSA.Create(2048);
+		//throw new NotImplementedException("Implement constructor - create RSA key pair");
 	}
 
 	/// <summary>
