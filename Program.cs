@@ -53,19 +53,29 @@ internal class Program
 		{
 			_consoleUI.DisplaySystem($"Client connected: {endpoint}");
         };
-		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
+		_server!.OnClientDisconnected += (endpoint) => {
+			_consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
+			_server!.RemoveUsername(endpoint);
+			};
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
 			if (message.Type == MessageType.KeyExchange)
 			{
-				// Handle public key exchange
+				// Add the public key to the server's list of known public keys
 				_server!.AddPublicKey(message.Sender, message.PublicKey!);
+				// Add the username to the server's list of known usernames and endpoints
+				_server!.AddUsername(message.Sender, endpoint);
 				// Broadcast the list of public keys to all clients
 				_server!.BroadcastPublicKeys();
 			} else if (message.Type == MessageType.SessionKey)
 			{
 				//Forward the session key to the intended recipient
-				_server!.SendTo(message.TargetPeerId!, message);
+				if (message.TargetPeerId == null || message.TargetPeerId == "" || _server!.GetEndpointByUsername(message.TargetPeerId!) == null)
+				{
+					_consoleUI.DisplaySystem($"SessionKey message TargetPeerId missing or unknown: {message}");
+					return;
+				}
+				_server!.SendTo(_server!.GetEndpointByUsername(message.TargetPeerId!)!, message);
 			}
 			else if (message.Type == MessageType.Instruction)
 			{
