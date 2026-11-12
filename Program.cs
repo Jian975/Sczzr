@@ -59,7 +59,7 @@ internal class Program
 			if (message.Type == MessageType.KeyExchange)
 			{
 				// Handle public key exchange
-				_server!.AddPublicKey(endpoint, message.PublicKey!);
+				_server!.AddPublicKey(message.Sender, message.PublicKey!);
 				// Broadcast the list of public keys to all clients
 				_server!.BroadcastPublicKeys();
 			} else if (message.Type == MessageType.SessionKey)

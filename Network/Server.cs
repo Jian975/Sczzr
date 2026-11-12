@@ -31,7 +31,7 @@ public class Server
     //roomname, client endpoints
     private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
 
-	// <endpoint, public key bytes>
+	// <username, public key bytes>
 	private ConcurrentDictionary<string, byte[]> _publicKeys = new();
 	
 
@@ -281,13 +281,13 @@ public class Server
 		}
 	}
 
-	public void AddPublicKey(string endpoint, byte[] publicKey)
+	public void AddPublicKey(string username, byte[] publicKey)
 	{
-		_publicKeys.TryAdd(endpoint, publicKey);
+		_publicKeys.TryAdd(username, publicKey);
 	}
 
 	// Sends all public keys to all connected clients. This is used for peer discovery and key exchange.
-	// Message format: endpoint:base64(publicKey),endpoint:base64(publicKey),...
+	// Message format: username:base64(publicKey),username:base64(publicKey),...
 	public void BroadcastPublicKeys()
 	{
 		string publicKeyString = "";
