@@ -43,24 +43,25 @@ public class MessageSigner
 
 	/// <summary>
 	///     Verify a message signature with the sender's public key.
-	///     TODO: Implement the following:
-	///     1. Create a new RSA instance for the sender's public key
-	///     2. Import the sender's public key
-	///     3. Use VerifyData() with:
-	///     - The original data bytes
-	///     - The signature bytes
-	///     - HashAlgorithmName.SHA256
-	///     - RSASignaturePadding.Pkcs1
-	///     4. If verification fails:
-	///     - Print a warning: "WARNING: Invalid signature detected - message may be tampered!"
-	///     5. Handle CryptographicException:
-	///     - Print error: "ERROR: Failed to verify signature - rejecting message"
-	///     - Return false
-	///     6. Return the verification result (true if valid, false if invalid)
-	///     Security Note: Always reject messages with invalid signatures!
 	/// </summary>
 	public bool VerifyData(byte[] data, byte[] signature, byte[] publicKey)
 	{
-		throw new NotImplementedException("Implement VerifyData() - see TODO in comments above");
+		try
+		{
+			using var rsa = RSA.Create();
+			rsa.ImportRSAPublicKey(publicKey, out _);
+
+			var isValid = rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+			if (!isValid)
+				Console.WriteLine("WARNING: Invalid signature detected - message may be tampered!");
+
+			return isValid;
+		}
+		catch (CryptographicException)
+		{
+			Console.WriteLine("ERROR: Failed to verify signature - rejecting message");
+			return false;
+		}
 	}
 }
