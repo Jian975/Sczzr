@@ -28,7 +28,7 @@ public class Server
 	public bool IsListening { get; private set; }
 
     //TODO: modify this if needed (wasn't provided)
-    //roomname, client endpoints
+    //roomname, client usernames
     private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
 
 	// <username, public key bytes>
@@ -265,13 +265,13 @@ public class Server
 			_rooms.TryAdd(roomName, new HashSet<string>());
 		}
 	}
-    public void AddToRoom(string endpoint, string roomName) { 
+    public void AddToRoom(string username, string roomName) { 
 		CreateRoom(roomName); //only creates if it doesn't exist
-		_rooms[roomName].Add(endpoint);
+		_rooms[roomName].Add(username);
 		return; 
 	}
-	public void RemoveFromRoom(string endpoint, string roomName) { 
-		_rooms[roomName].Remove(endpoint);
+	public void RemoveFromRoom(string username, string roomName) { 
+		_rooms[roomName].Remove(username);
 		return; 
 	}
     public List<string> ListRooms() {
@@ -282,6 +282,12 @@ public class Server
 		{
 			SendTo(endpoint, message);
 		}
+	}
+
+	public string GetRoomMembers(string roomName)
+	{
+		var members = _rooms[roomName].ToList();
+		return string.Join(", ", members);
 	}
 
 	public void AddPublicKey(string username, byte[] publicKey)

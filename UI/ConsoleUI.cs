@@ -1,4 +1,4 @@
-// Lydia Barriga
+// Lydia Barriga (sprint 1), Xuejian Sundvall (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // ConsoleUI.cs - Handles command parsing and message display.
@@ -49,7 +49,7 @@ public class ConsoleUI
 	/// </summary>
 	public void ShowHelp()
 	{
-		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /msg <room> <msg>     - Send a message to a room\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
+		DisplaySystem("Hello! Here is a handy list of our commands:\n  /connect <ip> <port>  - Connect to a server\n  /listen <port>        - Start listening for connections\n  /peers                - Show connection status\n  /username <name>      - Change your username\n  /create <room>        - Creates a room\n  /join <room>          - Joins a room\n  /leave <room>         - Leaves a room\n  /rooms                - Shows rooms\n  /msg <room> <msg>     - Send a message to a room\n  /members <room>       - Show members of a room\n  /quit                 - Exit\n  /exit                 - Exit\n  /help                 - Show available commands");
 		// throw new NotImplementedException("Implement ShowHelp()");
 	}
 
@@ -177,6 +177,18 @@ public class ConsoleUI
 						DisplaySystem("The /msg command takes at least 2 arguments: room name and message");
 					}
 					break;
+				case "/members":
+					if(parts.Length == 2)
+					{
+						res.CommandType = CommandType.Members;
+						res.Args = [parts[1]];
+					}
+					else
+					{
+						res.CommandType = CommandType.Unknown;
+						DisplaySystem("The /members command takes 1 argument: room name");
+					}
+					break;
 				default:
 					res.CommandType = CommandType.Unknown;
 					DisplaySystem("Unknown command, use the /help command to see a list of available commands!");
@@ -208,7 +220,8 @@ public enum CommandType
 	Leave,
 	Rooms,
 	MessageRoom,
-	CheckEndpoint
+	CheckEndpoint,
+	Members
 }
 
 /// <summary>

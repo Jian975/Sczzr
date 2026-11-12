@@ -86,12 +86,12 @@ internal class Program
 						_server!.CreateRoom(message.RoomName!);
 						break;
 					case "join":
-						_server!.AddToRoom(endpoint, message.RoomName!);
+						_server!.AddToRoom(message.Sender, message.RoomName!);
 						break;
 					case "leave":
-						_server!.RemoveFromRoom(endpoint, message.RoomName!);
+						_server!.RemoveFromRoom(message.Sender, message.RoomName!);
 						break;
-					case "list":
+					case "list rooms":
 						var rooms = _server!.ListRooms();
 						var roomListMessage = new Message
 						{
@@ -101,6 +101,17 @@ internal class Program
 							Timestamp = DateTime.Now
 						};
 						_server!.SendTo(endpoint, roomListMessage);
+						break;
+					case "list members":
+						var members = _server!.GetRoomMembers(message.RoomName!);
+						var memberListMessage = new Message
+						{
+							Sender = "Server",
+							Content = members,
+							Type = MessageType.Text,
+							Timestamp = DateTime.Now
+						};
+						_server!.SendTo(endpoint, memberListMessage);
 						break;
 					default:
 						_consoleUI.DisplaySystem($"Unknown instruction: {message.Content}");
@@ -204,6 +215,9 @@ internal class Program
 					case CommandType.Rooms:
                         ListRooms();
                         break;
+					case CommandType.Members:
+						ListMembers(inputCmd.Args![0]);
+						break;
 					case CommandType.MessageRoom:
 						if (_client!.IsConnected)
 						{
@@ -298,7 +312,13 @@ internal class Program
 	//rooms
 	private static void ListRooms()
 	{
-		_client!.Send(new Message { Content = "list", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
+		_client!.Send(new Message { Content = "list rooms", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
+	}
+
+	//members
+	private static void ListMembers(string roomName)
+	{
+		_client!.Send(new Message { Content = "list members", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 
 	//msg
