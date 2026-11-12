@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Jackson Welde
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
@@ -35,15 +35,10 @@ public class KeyExchange
 {
 	private byte[]? _peerPublicKey;
 	private RsaEncryption? _rsa;
-
-	/// <summary>
-	///     Initialize the key exchange by creating our RSA key pair.
-	///     TODO: Implement the following:
-	///     1. Create a new RsaEncryption instance
-	/// </summary>
+	
 	public KeyExchange()
 	{
-		throw new NotImplementedException("Implement constructor - create RsaEncryption instance");
+		_rsa = new RsaEncryption();
 	}
 
 	public ConnectionState State { get; } = ConnectionState.Disconnected;
