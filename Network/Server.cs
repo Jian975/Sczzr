@@ -33,6 +33,9 @@ public class Server
 
 	// <username, public key bytes>
 	private ConcurrentDictionary<string, byte[]> _publicKeys = new();
+
+	// <username, endpoint>
+	private ConcurrentDictionary<string, string> _usernamesToEndpoints = new();
 	
 
     /// <summary>
@@ -303,5 +306,28 @@ public class Server
 				Timestamp = DateTime.Now,
 			};
 		Broadcast(message);
+	}
+
+	public void AddUsername(string username, string endpoint)
+	{
+		_usernamesToEndpoints.TryAdd(username, endpoint);
+	}
+
+	public void RemoveUsername(string endpoint)
+	{
+		var username = _usernamesToEndpoints.FirstOrDefault(kvp => kvp.Value == endpoint).Key;
+		if (username != null)
+		{
+			_usernamesToEndpoints.TryRemove(username, out _);
+		}
+	}
+
+	public string? GetEndpointByUsername(string username)
+	{
+		if (_usernamesToEndpoints.TryGetValue(username, out var endpoint))
+		{
+			return endpoint;
+		}
+		return null;
 	}
 }
