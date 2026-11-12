@@ -56,7 +56,14 @@ internal class Program
 		_server!.OnClientDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 		_server!.OnMessageReceived += (endpoint, message) => {
 			_consoleUI.DisplayMessage(message);
-			if (message.Type == MessageType.Instruction)
+			if (message.Type == MessageType.KeyExchange)
+			{
+				// Handle public key exchange
+				_server!.AddPublicKey(endpoint, message.PublicKey!);
+				//Send all known public keys to the new client
+				_server!.SendPublicKey(endpoint);
+			}
+			else if (message.Type == MessageType.Instruction)
 			{
 				// Handle room creation, joining, leaving, and listing commands
 				switch (message.Content)

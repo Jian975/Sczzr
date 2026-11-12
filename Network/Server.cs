@@ -30,6 +30,9 @@ public class Server
     //TODO: modify this if needed (wasn't provided)
     //roomname, client endpoints
     private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
+
+	// <endpoint, public key bytes>
+	private ConcurrentDictionary<string, byte[]> _publicKeys = new();
 	
 
     /// <summary>
@@ -276,5 +279,29 @@ public class Server
 		{
 			SendTo(endpoint, message);
 		}
+	}
+
+	public void AddPublicKey(string endpoint, byte[] publicKey)
+	{
+		_publicKeys.TryAdd(endpoint, publicKey);
+	}
+
+	// Sends all public keys to the specified endpoint. This is used for peer discovery and key exchange.
+	// Message format: endpoint:base64(publicKey),endpoint:base64(publicKey),...
+	public void SendPublicKey(string endpoint)
+	{
+		string publicKeyString = "";
+		foreach (var kvp in _publicKeys)
+		{
+			publicKeyString += kvp.Key + ":" + Convert.ToBase64String(kvp.Value) + ",";
+		}
+		var message = new Message
+			{
+				Sender = "Server",
+				Content = publicKeyString.TrimEnd(','), // Remove the trailing comma
+				Type = MessageType.KeyExchange,
+				Timestamp = DateTime.Now,
+			};
+		SendTo(endpoint, message);
 	}
 }
