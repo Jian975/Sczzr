@@ -92,11 +92,9 @@ public class KeyExchange
 
 	/// <summary>
 	///     Mark the key exchange as complete (initiator side, after sending session key).
-	///     TODO: Implement the following:
-	///     1. Update State to Established
 	/// </summary>
 	public void Complete()
 	{
-		throw new NotImplementedException("Implement Complete() - see TODO in comments above");
+		State = ConnectionState.Established;
 	}
 }
