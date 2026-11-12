@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Jackson Welde
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
@@ -35,16 +35,10 @@ public class MessageSigner
 
 	/// <summary>
 	///     Sign data with our private key.
-	///     TODO: Implement the following:
-	///     1. Use _rsa.SignData() with:
-	///     - The data bytes to sign
-	///     - HashAlgorithmName.SHA256
-	///     - RSASignaturePadding.Pkcs1
-	///     2. Return the signature bytes
 	/// </summary>
 	public byte[] SignData(byte[] data)
 	{
-		throw new NotImplementedException("Implement SignData() - see TODO in comments above");
+		return _rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 	}
 
 	/// <summary>
