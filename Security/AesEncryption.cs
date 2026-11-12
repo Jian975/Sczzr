@@ -5,6 +5,9 @@
 // Due: Week 10
 //
 
+//using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
+
 namespace SecureMessenger.Security;
 
 /// <summary>
@@ -45,7 +48,11 @@ public class AesEncryption
 	/// </summary>
 	public static byte[] GenerateKey()
 	{
-		throw new NotImplementedException("Implement GenerateKey() - see TODO in comments above");
+		using var aes = Aes.Create();
+		aes.KeySize = 256;
+		aes.GenerateKey();
+		return aes.Key;
+		// throw new NotImplementedException("Implement GenerateKey() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -66,6 +73,9 @@ public class AesEncryption
 	/// </summary>
 	public byte[] Encrypt(string plaintext)
 	{
+		using var aes = Aes.Create();
+		aes.KeySize = 256;
+		aes.GenerateKey();
 		throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
 	}
 
