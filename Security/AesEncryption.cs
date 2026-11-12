@@ -7,6 +7,7 @@
 
 //using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace SecureMessenger.Security;
 
@@ -74,9 +75,19 @@ public class AesEncryption
 	public byte[] Encrypt(string plaintext)
 	{
 		using var aes = Aes.Create();
-		aes.KeySize = 256;
-		aes.GenerateKey();
-		throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
+		aes.Key = _key;
+		aes.Mode = CipherMode.CBC;
+		aes.GenerateIV();
+
+		using var AESencryptor = aes.CreateEncryptor();
+		byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
+		AESencryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+
+		byte[] resultArray = new byte[aes.IV.Length + plainBytes.Length];
+		Buffer.BlockCopy(aes.IV, 0, resultArray, 0, aes.IV.Length);
+		Buffer.BlockCopy(plainBytes, 0, resultArray, aes.IV.Length, plainBytes.Length);
+		return resultArray;
+		//throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
 	}
 
 	/// <summary>
