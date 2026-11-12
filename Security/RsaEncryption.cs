@@ -88,7 +88,8 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] DecryptSessionKey(byte[] encryptedKey)
 	{
-		throw new NotImplementedException("Implement DecryptSessionKey() - see TODO in comments above");
+		return _rsa.Decrypt(encryptedKey, RSAEncryptionPadding.OaepSHA256);
+		//throw new NotImplementedException("Implement DecryptSessionKey() - see TODO in comments above");
 	}
 
 	/// <summary>
