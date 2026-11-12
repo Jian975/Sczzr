@@ -1,9 +1,13 @@
-// [Your Name Here]
+// Lydia Barriga
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
 // Due: Week 10
 //
+
+//using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SecureMessenger.Security;
 
@@ -45,7 +49,11 @@ public class AesEncryption
 	/// </summary>
 	public static byte[] GenerateKey()
 	{
-		throw new NotImplementedException("Implement GenerateKey() - see TODO in comments above");
+		using var aes = Aes.Create();
+		aes.KeySize = 256;
+		aes.GenerateKey();
+		return aes.Key;
+		// throw new NotImplementedException("Implement GenerateKey() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -66,7 +74,20 @@ public class AesEncryption
 	/// </summary>
 	public byte[] Encrypt(string plaintext)
 	{
-		throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
+		using var aes = Aes.Create();
+		aes.Key = _key;
+		aes.Mode = CipherMode.CBC;
+		aes.GenerateIV();
+
+		var aesEncryptor = aes.CreateEncryptor();
+		byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
+		aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+
+		byte[] resultArray = new byte[aes.IV.Length + plainBytes.Length];
+		Buffer.BlockCopy(aes.IV, 0, resultArray, 0, aes.IV.Length);
+		Buffer.BlockCopy(plainBytes, 0, resultArray, aes.IV.Length, plainBytes.Length);
+		return resultArray;
+		//throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -89,6 +110,22 @@ public class AesEncryption
 	/// </summary>
 	public string Decrypt(byte[] ciphertext)
 	{
-		throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
+		using var aes = Aes.Create();
+		aes.Key = _key;
+		aes.Mode = CipherMode.CBC;
+
+		aes.IV = new byte[16];
+		Buffer.BlockCopy(ciphertext, 0, aes.IV, 0, 16);
+
+		byte[] cypherBytes = new byte[ciphertext.Length - 16];
+		Buffer.BlockCopy(ciphertext, 16, cypherBytes, 0, cypherBytes.Length);
+
+		var aesDecryptor = aes.CreateDecryptor();
+
+		aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
+		
+		string plaintext = Encoding.UTF8.GetString(cypherBytes);
+		return plaintext;
+		//throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
 	}
 }

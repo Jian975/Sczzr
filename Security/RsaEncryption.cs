@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Lydia Barriga
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
@@ -34,8 +34,8 @@ public class RsaEncryption
 	/// </summary>
 	public RsaEncryption()
 	{
-		// TODO: Generate RSA key pair (2048 bits)
-		throw new NotImplementedException("Implement constructor - create RSA key pair");
+		_rsa = RSA.Create(2048);
+		//throw new NotImplementedException("Implement constructor - create RSA key pair");
 	}
 
 	/// <summary>
@@ -46,7 +46,8 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] ExportPublicKey()
 	{
-		throw new NotImplementedException("Implement ExportPublicKey() - see TODO in comments above");
+		return _rsa.ExportRSAPublicKey();
+		//throw new NotImplementedException("Implement ExportPublicKey() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -57,7 +58,8 @@ public class RsaEncryption
 	/// </summary>
 	public void ImportPublicKey(byte[] publicKey)
 	{
-		throw new NotImplementedException("Implement ImportPublicKey() - see TODO in comments above");
+		_rsa.ImportRSAPublicKey(publicKey, out _);
+		//throw new NotImplementedException("Implement ImportPublicKey() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -71,7 +73,10 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] EncryptSessionKey(byte[] aesKey, byte[] peerPublicKey)
 	{
-		throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
+		RSA peerRsa = RSA.Create(2048);
+		this.ImportPublicKey(peerPublicKey);
+		return peerRsa.Encrypt(aesKey, RSAEncryptionPadding.OaepSHA256);
+		//throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
 	}
 
 	/// <summary>
@@ -83,7 +88,8 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] DecryptSessionKey(byte[] encryptedKey)
 	{
-		throw new NotImplementedException("Implement DecryptSessionKey() - see TODO in comments above");
+		return _rsa.Decrypt(encryptedKey, RSAEncryptionPadding.OaepSHA256);
+		//throw new NotImplementedException("Implement DecryptSessionKey() - see TODO in comments above");
 	}
 
 	/// <summary>
