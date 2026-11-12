@@ -1,4 +1,4 @@
-// Jackson Welde
+// Jackson Welde (sprint 1), Xuejian Sundvall (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // Server.cs - TCP server that listens for connections and receives messages.

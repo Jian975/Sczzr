@@ -1,4 +1,4 @@
-// Xuejian Sundvall (sprint 1), Athena Ching (sprint 2)
+// Xuejian Sundvall (sprint 1), Athena Ching + Xuejian Sundvall (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // Program.cs - Entry point. Sets up the server/client, wires up events,

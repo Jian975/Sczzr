@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Xuejian Sundvall (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // PROVIDED - No implementation required
