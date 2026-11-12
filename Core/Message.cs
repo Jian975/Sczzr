@@ -44,6 +44,7 @@ public class Message
 	public byte[]? Signature { get; set; }
 	public byte[]? EncryptedContent { get; set; }
 	public byte[]? PublicKey { get; set; }
+	public string? Request { get; set; }
 
 	// Sprint 2-3: Target peer for directed/routed messages (/msg @peer)
 	public string? TargetPeerId { get; set; }

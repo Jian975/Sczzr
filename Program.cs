@@ -98,11 +98,12 @@ internal class Program
 							Sender = "Server",
 							Content = string.Join(", ", rooms),
 							Type = MessageType.Text,
-							Timestamp = DateTime.Now
+							Timestamp = DateTime.Now,
+							Request = "list rooms"
 						};
 						_server!.SendTo(endpoint, roomListMessage);
 						break;
-					case "list members":
+					case "list room members":
 						var members = _server!.GetRoomMembers(message.RoomName!);
 						var memberListMessage = new Message
 						{
@@ -110,7 +111,9 @@ internal class Program
 							Content = members,
 							Type = MessageType.Text,
 							Timestamp = DateTime.Now,
-							RoomName = message.RoomName
+							RoomName = message.RoomName,
+							Request = "list room members"
+
 						};
 						_server!.SendTo(endpoint, memberListMessage);
 						break;
@@ -216,7 +219,7 @@ internal class Program
 					case CommandType.Rooms:
                         ListRooms();
                         break;
-					case CommandType.Members:
+					case CommandType.RoomMembers:
 						ListMembers(inputCmd.Args![0]);
 						break;
 					case CommandType.MessageRoom:
@@ -319,7 +322,7 @@ internal class Program
 	//members
 	private static void ListMembers(string roomName)
 	{
-		_client!.Send(new Message { Content = "list members", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message { Content = "list room members", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 
 	//msg
