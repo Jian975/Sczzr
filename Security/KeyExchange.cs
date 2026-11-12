@@ -63,13 +63,11 @@ public class KeyExchange
 
 	/// <summary>
 	///     Store the peer's public key when received.
-	///     TODO: Implement the following:
-	///     1. Store the peer's public key in _peerPublicKey
-	///     2. Update State to ReceivingPublicKey
 	/// </summary>
 	public void ReceivePublicKey(byte[] peerPublicKey)
 	{
-		throw new NotImplementedException("Implement ReceivePublicKey() - see TODO in comments above");
+		_peerPublicKey = peerPublicKey;
+		State = ConnectionState.ReceivingPublicKey;
 	}
 
 	/// <summary>
