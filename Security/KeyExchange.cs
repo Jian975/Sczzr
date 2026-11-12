@@ -35,7 +35,8 @@ public class KeyExchange
 {
 	private byte[]? _peerPublicKey;
 	private RsaEncryption? _rsa;
-	
+	private byte[]? _sessionKey;
+
 	/// <summary>
 	///     Initialize the key exchange by creating our RSA key pair.
 	/// </summary>
@@ -72,16 +73,12 @@ public class KeyExchange
 
 	/// <summary>
 	///     Generate a new AES session key and encrypt it for the peer (initiator side).
-	///     TODO: Implement the following:
-	///     1. Generate a new AES key using AesEncryption.GenerateKey()
-	///     2. Store it in _sessionKey
-	///     3. Update State to SendingSessionKey
-	///     4. Encrypt the session key with peer's public key using _rsa.EncryptSessionKey()
-	///     5. Return the encrypted session key
 	/// </summary>
 	public byte[] CreateEncryptedSessionKey()
 	{
-		throw new NotImplementedException("Implement CreateEncryptedSessionKey() - see TODO in comments above");
+		_sessionKey = AesEncryption.GenerateKey();
+		State = ConnectionState.SendingSessionKey;
+		return _rsa!.EncryptSessionKey(_sessionKey, _peerPublicKey!);
 	}
 
 	/// <summary>
