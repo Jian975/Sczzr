@@ -30,18 +30,24 @@ public class Client
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
 
-	// Peer ID (or Endpoint) -> Shared AES Key/IV
+	// username -> Shared AES Key/IV
 	private readonly ConcurrentDictionary<string, AesEncryption> _sessionKeys = new ConcurrentDictionary<string, AesEncryption>();
 
-	private MessageSigner _messageSigner;
+	private MessageSigner? _messageSigner;
 
-	private byte[] _publicKey {get; set;}
+	private byte[]? _publicKey {get; set;}
 
-	private RSA _rsa {get; set;}
+	private RSA? _rsa {get; set;}
 
-	private RsaEncryption rsaEncryption {get; set;}
+	private RsaEncryption? rsaEncryption {get; set;}
 
-	private ConcurrentDictionary<string, byte[]> _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
+	private ConcurrentDictionary<string, byte[]>? _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
+
+	private AesEncryption? _aesEncryption;
+
+	private byte[]? privateAesKey;
+
+	private ConcurrentDictionary<string, byte[]>? _peerPrivateAesKeys = new ConcurrentDictionary<string, byte[]>();
 
 	public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
 
@@ -88,6 +94,7 @@ public class Client
 			rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
 			
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
+			_aesEncryption = new AesEncryption(_publicKey);
 
 			//todo: uncomment these lines once encryption doesn't throw an not implemented err
 			//_rsaEncryption = new RsaEncryption();
@@ -181,10 +188,16 @@ public class Client
 							string username = keyValue[0];
 							string publicKey = keyValue[1];
 							// Process each key-value pair as needed
-							_peerPublicKeys[username] = Convert.FromBase64String(publicKey);
+							_ = _peerPublicKeys!.TryAdd(username, Convert.FromBase64String(publicKey));
 						}
 					}
+				}else if (message.Type == MessageType.SessionKey)
+				{
+					string username = message.Sender;
+					byte[] aesKey = message.EncryptedContent!;
+					_ = _peerPrivateAesKeys!.TryAdd(username, aesKey);
 				}
+				
                 // Fire the OnMessageReceived event
                 OnMessageReceived?.Invoke(message);
             }
@@ -243,15 +256,15 @@ public class Client
 		}
 	}
 
-	public async Task SendTo(string endpoint, Message message)
+	public async Task SendTo(string username, Message message)
 	{
 		if (IsConnected)
 		{
 			try
 			{
-				if (!_sessionKeys.ContainsKey(endpoint))
+				if (!_sessionKeys.ContainsKey(username))
 				{
-					Console.WriteLine("No session key found for the specified endpoint");
+					Console.WriteLine("No session key found for the specified username");
 					return;
 				}
 
@@ -259,11 +272,20 @@ public class Client
 
 				// Encrypt the payload with the receiver's AES key
 				RsaEncryption rsaEncryption = new RsaEncryption();
-				//byte[] peerPublicKey = 
-
+				byte[] peerPublicKey = _peerPublicKeys![username];
 
 				//encrypt with receiver's aes key
-				byte[] encryptedPayload = aes.Encrypt(Encoding.UTF8.GetString(payload));
+				byte[]? peerPrivateAesKey = _peerPrivateAesKeys![username];
+
+				
+				if (peerPrivateAesKey == null)
+				{
+					AesEncryption peerAesEncryption = new AesEncryption(peerPublicKey);
+					_peerPrivateAesKeys![username] = AesEncryption.GenerateKey();
+				}
+
+
+				byte[] encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
 				byte[] encryptedPrefix = BitConverter.GetBytes(encryptedPayload.Length);
 
 				byte[] signature = _messageSigner.SignData(encryptedPayload);
