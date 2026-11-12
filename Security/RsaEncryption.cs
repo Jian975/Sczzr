@@ -34,7 +34,6 @@ public class RsaEncryption
 	/// </summary>
 	public RsaEncryption()
 	{
-		// TODO: Generate RSA key pair (2048 bits)
 		RSA.Create(2048);
 		//throw new NotImplementedException("Implement constructor - create RSA key pair");
 	}
@@ -47,7 +46,8 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] ExportPublicKey()
 	{
-		throw new NotImplementedException("Implement ExportPublicKey() - see TODO in comments above");
+		return _rsa.ExportRSAPublicKey();
+		//throw new NotImplementedException("Implement ExportPublicKey() - see TODO in comments above");
 	}
 
 	/// <summary>
