@@ -79,9 +79,9 @@ public class AesEncryption
 		aes.Mode = CipherMode.CBC;
 		aes.GenerateIV();
 
-		using var AESencryptor = aes.CreateEncryptor();
+		var aesEncryptor = aes.CreateEncryptor();
 		byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
-		AESencryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+		aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
 
 		byte[] resultArray = new byte[aes.IV.Length + plainBytes.Length];
 		Buffer.BlockCopy(aes.IV, 0, resultArray, 0, aes.IV.Length);
@@ -110,6 +110,22 @@ public class AesEncryption
 	/// </summary>
 	public string Decrypt(byte[] ciphertext)
 	{
-		throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
+		using var aes = Aes.Create();
+		aes.Key = _key;
+		aes.Mode = CipherMode.CBC;
+
+		aes.IV = new byte[16];
+		Buffer.BlockCopy(ciphertext, 0, aes.IV, 0, 16);
+
+		byte[] cypherBytes = new byte[ciphertext.Length - 16];
+		Buffer.BlockCopy(ciphertext, 16, cypherBytes, 0, cypherBytes.Length);
+
+		var aesDecryptor = aes.CreateDecryptor();
+
+		aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
+		
+		string plaintext = Encoding.UTF8.GetString(cypherBytes);
+		return plaintext;
+		//throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
 	}
 }
