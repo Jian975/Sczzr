@@ -1,4 +1,4 @@
-// [Athena Ching]
+// [Athena Ching (sprint 1, sprint 2)]
 // CSCI 251 - Secure Distributed Messenger
 //
 // Client.cs - Connects to a server and handles sending/receiving messages.
@@ -33,8 +33,17 @@ public class Client
 	// Peer ID (or Endpoint) -> Shared AES Key/IV
 	private readonly ConcurrentDictionary<string, AesEncryption> _sessionKeys = new ConcurrentDictionary<string, AesEncryption>();
 
-	private RsaEncryption _rsaEncryption;
 	private MessageSigner _messageSigner;
+
+	private byte[] _publicKey {get; set;}
+
+	private RSA _rsa {get; set;}
+
+	private RsaEncryption rsaEncryption {get; set;}
+
+	private ConcurrentDictionary<string, byte[]> _publicKeys = new ConcurrentDictionary<string, byte[]>();
+
+	public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
 
     /// <summary> 
     ///     If the connection is successful, it initializes the network stream, 
@@ -53,6 +62,7 @@ public class Client
     ///     background Task. Return true.
     ///     If anything throws, log the error and return false.
     /// 
+	/// TODO: add key exchange (call to KeyExchange) for rsa public keys
     /// </summary>
     public async Task<bool> ConnectAsync(string host, int port)
 	{
@@ -71,11 +81,29 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
+			_rsa = RSA.Create();
+			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
+			
+			rsaEncryption = new RsaEncryption();
+			rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
+			
+			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
+
 			//todo: uncomment these lines once encryption doesn't throw an not implemented err
 			//_rsaEncryption = new RsaEncryption();
 			//_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
             // Fire the OnConnected event
             OnConnected?.Invoke(_serverEndpoint);
+
+			//send public key to server
+			Message keyExchange = new Message()
+			{
+				PublicKey = _publicKey,
+				Type = MessageType.KeyExchange,
+				Timestamp = DateTime.Now
+			};
+			Send(keyExchange);
+			
 
             // Start ReceiveAsync on a background Task
             _ = Task.Run(() => ReceiveAsync());
@@ -112,7 +140,7 @@ public class Client
 	///     - Deserialize the JSON into a Message and fire OnMessageReceived
 	///     Catch OperationCanceledException (normal shutdown).
 	///     In the finally block, fire OnDisconnected.
-	///     
+	///     TODO: handle decrypt
 	/// </summary>
 	private async Task ReceiveAsync()
 	{
@@ -199,7 +227,7 @@ public class Client
 		}
 	}
 
-	public void SendTo(string endpoint, Message message)
+	public async Task SendTo(string endpoint, Message message)
 	{
 		if (IsConnected)
 		{
@@ -213,13 +241,20 @@ public class Client
 
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
+				// Encrypt the payload with the receiver's AES key
+				var rsaEncryption = new RsaEncryption();
+				byte[] rsaPublicKey = rsaEncryption.ExportPublicKey();
+				var aes = new AesEncryption(rsaPublicKey);
+
+
 				//encrypt with receiver's aes key
-				var aes = _sessionKeys[endpoint];
 				byte[] encryptedPayload = aes.Encrypt(Encoding.UTF8.GetString(payload));
 				byte[] encryptedPrefix = BitConverter.GetBytes(encryptedPayload.Length);
 
 				byte[] signature = _messageSigner.SignData(encryptedPayload);
-				_stream!.Write(encryptedPrefix.Concat(encryptedPayload).Concat(signature).ToArray(), 
+				//await _stream!.WriteAsync(encryptedPrefix.Concat(encryptedPayload).Concat(signature).ToArray(), 
+				//				0, encryptedPrefix.Length + encryptedPayload.Length + signature.Length);
+				await _stream!.WriteAsync(encryptedPrefix.Concat(signature).ToArray(), 
 								0, encryptedPrefix.Length + signature.Length);
 			}
 			catch (IOException)
