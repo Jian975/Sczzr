@@ -62,6 +62,10 @@ internal class Program
 				_server!.AddPublicKey(endpoint, message.PublicKey!);
 				//Send all known public keys to the new client
 				_server!.SendPublicKey(endpoint);
+			} else if (message.Type == MessageType.SessionKey)
+			{
+				//Forward the session key to the intended recipient
+				_server!.SendTo(message.TargetPeerId!, message);
 			}
 			else if (message.Type == MessageType.Instruction)
 			{
