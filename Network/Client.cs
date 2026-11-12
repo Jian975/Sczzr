@@ -30,16 +30,13 @@ public class Client
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
 
-	// username -> Shared AES Key/IV
-	private readonly ConcurrentDictionary<string, AesEncryption> _sessionKeys = new ConcurrentDictionary<string, AesEncryption>();
-
 	private MessageSigner? _messageSigner;
 
 	private byte[]? _publicKey {get; set;}
 
 	private RSA? _rsa {get; set;}
 
-	private RsaEncryption? rsaEncryption {get; set;}
+	private RsaEncryption? _rsaEncryption {get; set;}
 
 	private ConcurrentDictionary<string, byte[]>? _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
 
@@ -47,9 +44,10 @@ public class Client
 
 	private byte[]? privateAesKey;
 
-	private ConcurrentDictionary<string, byte[]>? _peerPrivateAesKeys = new ConcurrentDictionary<string, byte[]>();
+	private ConcurrentDictionary<string, byte[]>? _sessionKeys = new ConcurrentDictionary<string, byte[]>(); //peer private aes keys
+    private object _peerPrivateAesKeys;
 
-	public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
+    public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
 
     /// <summary> 
     ///     If the connection is successful, it initializes the network stream, 
@@ -90,8 +88,8 @@ public class Client
 			_rsa = RSA.Create();
 			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
 			
-			rsaEncryption = new RsaEncryption();
-			rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
+			_rsaEncryption = new RsaEncryption();
+			_rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
 			
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
 			_aesEncryption = new AesEncryption(_publicKey);
@@ -195,7 +193,7 @@ public class Client
 				{
 					string username = message.Sender;
 					byte[] aesKey = message.EncryptedContent!;
-					_ = _peerPrivateAesKeys!.TryAdd(username, aesKey);
+					_ = _sessionKeys!.TryAdd(username, aesKey);
 				}
 				
                 // Fire the OnMessageReceived event
@@ -256,7 +254,7 @@ public class Client
 		}
 	}
 
-	public async Task SendTo(string username, Message message)
+	public void SendTo(string username, Message message)
 	{
 		if (IsConnected)
 		{
@@ -270,29 +268,41 @@ public class Client
 
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
-				// Encrypt the payload with the receiver's AES key
-				RsaEncryption rsaEncryption = new RsaEncryption();
+				// get recipient's public key
 				byte[] peerPublicKey = _peerPublicKeys![username];
 
-				//encrypt with receiver's aes key
-				byte[]? peerPrivateAesKey = _peerPrivateAesKeys![username];
-
+				// try to get the recipient's private AES key
+				byte[]? peerPrivateAesKey = _sessionKeys![username];
 				
+				// if null (first time messaging this user)
 				if (peerPrivateAesKey == null)
 				{
-					AesEncryption peerAesEncryption = new AesEncryption(peerPublicKey);
-					_peerPrivateAesKeys![username] = AesEncryption.GenerateKey();
+
+					byte[] peerAesKey = AesEncryption.GenerateKey();
+					_sessionKeys.TryAdd(username, peerAesKey);
+
+					Message sessionKeyMessage = new Message
+					{
+						Type = MessageType.SessionKey,
+						Sender = _username,
+						EncryptedContent = _rsaEncryption!.EncryptSessionKey(peerAesKey, peerPublicKey)
+					};
+
+					Send(sessionKeyMessage);
 				}
 
-
 				byte[] encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
-				byte[] encryptedPrefix = BitConverter.GetBytes(encryptedPayload.Length);
+				byte[] signature = _messageSigner!.SignData(encryptedPayload);
 
-				byte[] signature = _messageSigner.SignData(encryptedPayload);
-				//await _stream!.WriteAsync(encryptedPrefix.Concat(encryptedPayload).Concat(signature).ToArray(), 
-				//				0, encryptedPrefix.Length + encryptedPayload.Length + signature.Length);
-				await _stream!.WriteAsync(encryptedPrefix.Concat(signature).ToArray(), 
-								0, encryptedPrefix.Length + signature.Length);
+				Message regularMessage = new Message()
+				{
+					Type = MessageType.Text,
+					Sender = _username,
+					EncryptedContent = encryptedPayload,
+					Signature = signature
+				};
+
+				Send(regularMessage);
 			}
 			catch (IOException)
 			{
