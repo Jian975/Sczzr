@@ -83,14 +83,11 @@ public class KeyExchange
 
 	/// <summary>
 	///     Decrypt the received session key (responder side).
-	///     TODO: Implement the following:
-	///     1. Decrypt the encrypted key using _rsa.DecryptSessionKey()
-	///     2. Store the decrypted key in _sessionKey
-	///     3. Update State to Established
 	/// </summary>
 	public void ReceiveEncryptedSessionKey(byte[] encryptedKey)
 	{
-		throw new NotImplementedException("Implement ReceiveEncryptedSessionKey() - see TODO in comments above");
+		_sessionKey = _rsa!.DecryptSessionKey(encryptedKey);
+		State = ConnectionState.Established;
 	}
 
 	/// <summary>
