@@ -60,8 +60,8 @@ internal class Program
 			{
 				// Handle public key exchange
 				_server!.AddPublicKey(endpoint, message.PublicKey!);
-				//Send all known public keys to the new client
-				_server!.SendPublicKey(endpoint);
+				// Broadcast the list of public keys to all clients
+				_server!.BroadcastPublicKeys();
 			} else if (message.Type == MessageType.SessionKey)
 			{
 				//Forward the session key to the intended recipient

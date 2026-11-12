@@ -286,9 +286,9 @@ public class Server
 		_publicKeys.TryAdd(endpoint, publicKey);
 	}
 
-	// Sends all public keys to the specified endpoint. This is used for peer discovery and key exchange.
+	// Sends all public keys to all connected clients. This is used for peer discovery and key exchange.
 	// Message format: endpoint:base64(publicKey),endpoint:base64(publicKey),...
-	public void SendPublicKey(string endpoint)
+	public void BroadcastPublicKeys()
 	{
 		string publicKeyString = "";
 		foreach (var kvp in _publicKeys)
@@ -302,6 +302,6 @@ public class Server
 				Type = MessageType.KeyExchange,
 				Timestamp = DateTime.Now,
 			};
-		SendTo(endpoint, message);
+		Broadcast(message);
 	}
 }
