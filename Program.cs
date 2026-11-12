@@ -109,7 +109,8 @@ internal class Program
 							Sender = "Server",
 							Content = members,
 							Type = MessageType.Text,
-							Timestamp = DateTime.Now
+							Timestamp = DateTime.Now,
+							RoomName = message.RoomName
 						};
 						_server!.SendTo(endpoint, memberListMessage);
 						break;
