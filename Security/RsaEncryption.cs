@@ -34,7 +34,7 @@ public class RsaEncryption
 	/// </summary>
 	public RsaEncryption()
 	{
-		RSA.Create(2048);
+		_rsa = RSA.Create(2048);
 		//throw new NotImplementedException("Implement constructor - create RSA key pair");
 	}
 
@@ -73,7 +73,10 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] EncryptSessionKey(byte[] aesKey, byte[] peerPublicKey)
 	{
-		throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
+		RSA peerRsa = RSA.Create(2048);
+		this.ImportPublicKey(peerPublicKey);
+		return peerRsa.Encrypt(aesKey, RSAEncryptionPadding.OaepSHA256);
+		//throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
 	}
 
 	/// <summary>
