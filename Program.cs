@@ -305,6 +305,6 @@ internal class Program
 	//TODO: set security fields
     private static void SendToRoom(string roomName, string text)
 	{
-		_client!.Send(new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.SendToRoom(roomName, new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 }
