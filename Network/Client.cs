@@ -204,10 +204,10 @@ public class Client
 					string roomName = message.RoomName!;
 					string[] members = message.Content.Split(',');
 					_roomMembers!.TryAdd(roomName, members);
-					lock (lockObject)
-					{
-						_userListReceived = true;
-					}
+					//lock (lockObject)
+					//{
+					_userListReceived = true;
+					//}
 				}
 				else
 				{
