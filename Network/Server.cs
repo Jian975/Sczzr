@@ -277,12 +277,6 @@ public class Server
     public List<string> ListRooms() {
 		return _rooms.Keys.ToList();
 	}
-    public void BroadcastToRoom(string roomName, Message message) {
-		foreach (string endpoint in _rooms[roomName])
-		{
-			SendTo(endpoint, message);
-		}
-	}
 
 	public string GetRoomMembers(string roomName)
 	{

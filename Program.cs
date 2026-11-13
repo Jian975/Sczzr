@@ -137,11 +137,6 @@ internal class Program
 					_server.SendTo(recipientEndpoint, message);
 				}
 			}
-			//if message to room then broadcast to that group only
-			else if (message.RoomName != null && message.RoomName != "")
-			{
-				_server!.BroadcastToRoom(message.RoomName, message);
-			}
 			else
 			{
 				_server!.Broadcast(message);
