@@ -46,7 +46,7 @@ public class KeyExchange
 	}
 
 	public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
-	public byte[]? SessionKey { get; }
+	public byte[]? SessionKey => _sessionKey;
 
 	/// <summary>
 	///     Check if key exchange is complete and we have a valid session key.
@@ -69,6 +69,11 @@ public class KeyExchange
 	{
 		_peerPublicKey = peerPublicKey;
 		State = ConnectionState.ReceivingPublicKey;
+	}
+
+	public byte[] GetPrivateKey()
+	{
+		return _rsa!.ExportPrivateKey();
 	}
 
 	/// <summary>
