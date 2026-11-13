@@ -81,11 +81,11 @@ public class AesEncryption
 
 		var aesEncryptor = aes.CreateEncryptor();
 		byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
-		aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+		byte[] cipherBytes = aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
 
-		byte[] resultArray = new byte[aes.IV.Length + plainBytes.Length];
+		byte[] resultArray = new byte[aes.IV.Length + cipherBytes.Length];
 		Buffer.BlockCopy(aes.IV, 0, resultArray, 0, aes.IV.Length);
-		Buffer.BlockCopy(plainBytes, 0, resultArray, aes.IV.Length, plainBytes.Length);
+		Buffer.BlockCopy(cipherBytes, 0, resultArray, aes.IV.Length, cipherBytes.Length);
 		return resultArray;
 		//throw new NotImplementedException("Implement Encrypt() - see TODO in comments above");
 	}
@@ -122,9 +122,9 @@ public class AesEncryption
 
 		var aesDecryptor = aes.CreateDecryptor();
 
-		aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
+		byte[] plaintextBytes = aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
 		
-		string plaintext = Encoding.UTF8.GetString(cypherBytes);
+		string plaintext = Encoding.UTF8.GetString(plaintextBytes);
 		return plaintext;
 		//throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
 	}

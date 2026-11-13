@@ -38,6 +38,11 @@ public class RsaEncryption
 		//throw new NotImplementedException("Implement constructor - create RSA key pair");
 	}
 
+	public RsaEncryption(RSA rsa)
+	{
+		_rsa = rsa;
+	}
+
 	/// <summary>
 	///     Export our public key to send to a peer.
 	///     TODO: Implement the following:
@@ -74,7 +79,7 @@ public class RsaEncryption
 	public byte[] EncryptSessionKey(byte[] aesKey, byte[] peerPublicKey)
 	{
 		RSA peerRsa = RSA.Create(2048);
-		this.ImportPublicKey(peerPublicKey);
+		peerRsa.ImportRSAPublicKey(peerPublicKey, out _);
 		return peerRsa.Encrypt(aesKey, RSAEncryptionPadding.OaepSHA256);
 		//throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
 	}
