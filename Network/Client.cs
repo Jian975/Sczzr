@@ -346,7 +346,7 @@ public class Client
 			Message getRoomMembersMessage = new Message
 			{
 				Type = MessageType.Instruction,
-				Content = "list members",
+				Content = "list room members",
 				Sender = _username,
 				RoomName = roomName
 			};
