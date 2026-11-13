@@ -31,13 +31,12 @@ public class Client
 	public event Action<string>? OnDisconnected;
 	public event Action<Message>? OnMessageReceived;
 
+	private KeyExchange? _keyExchange;
 	private MessageSigner? _messageSigner;
 
-	private byte[]? _publicKey {get; set;}
+	private byte[]? _publicKey;
 
-	private RSA? _rsa {get; set;}
-
-	private RsaEncryption? _rsaEncryption {get; set;}
+	private RSA? _rsa;
 
 	private ConcurrentDictionary<string, byte[]>? _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
 
@@ -52,6 +51,7 @@ public class Client
 	private ConcurrentDictionary<string, string[]>? _roomMembers = new ConcurrentDictionary<string, string[]>();
 
 	private Boolean _userListReceived = false;
+	private Boolean _publicKeysReceived = false;
 
 	private Object lockObject = new Object();
 
@@ -91,13 +91,15 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
+			_keyExchange = new KeyExchange();
+			_publicKey = _keyExchange.GetPublicKey();
+			_privateKey = _keyExchange.GetPrivateKey();
 			//get private key bytes
 			_rsa = RSA.Create(2048);
-			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
-			_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
-			
-			_rsaEncryption = new RsaEncryption(_rsa);
-			
+			_rsa.ImportRSAPublicKey(_publicKey, out _);
+			_rsa.ImportRSAPrivateKey(_privateKey, out _);
+			//_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
+			//_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
 
 			//todo: uncomment these lines once encryption doesn't throw an not implemented err
@@ -107,7 +109,7 @@ public class Client
             OnConnected?.Invoke(_serverEndpoint);
 
 			//send public key to server
-			Message keyExchange = new Message()
+			Message keyExchangeMessage = new Message()
 			{
 				Sender = _username,
 				PublicKey = _publicKey,
@@ -115,7 +117,7 @@ public class Client
 				Timestamp = DateTime.Now
 			};
 			
-			Send(keyExchange);
+			Send(keyExchangeMessage);
 
             // Start ReceiveAsync on a background Task
             _ = Task.Run(() => ReceiveAsync());
@@ -183,24 +185,40 @@ public class Client
 
 				if (message.Type == MessageType.KeyExchange)
 				{
-					string content = message.Content;
-					string[] pairs = content.Split(',');
-					foreach (var pair in pairs)
+					if (message.Sender != "Server")
 					{
-						var keyValue = pair.Split(':');
-						if (keyValue.Length == 2)
+						_peerPublicKeys!.TryAdd(message.Sender, message.PublicKey!);
+					}
+					else
+					{
+						string content = message.Content;
+						string[] pairs = content.Split(',');
+						foreach (var pair in pairs)
 						{
-							string username = keyValue[0];
-							string publicKey = keyValue[1];
-							// Process each key-value pair as needed
-							_ = _peerPublicKeys!.TryAdd(username, Convert.FromBase64String(publicKey));
+							var keyValue = pair.Split(':');
+							if (keyValue.Length == 2)
+							{
+								string username = keyValue[0].Trim();
+								string publicKey = keyValue[1].Trim();
+								// Process each key-value pair as needed
+								_ = _peerPublicKeys!.TryAdd(username, Convert.FromBase64String(publicKey));
+							}
 						}
 					}
+					foreach (var item in _peerPublicKeys!)
+					{
+						Console.WriteLine($"{item.Key}: {item.Value}");
+					}
+					
 				}else if (message.Type == MessageType.SessionKey)
 				{
 					string username = message.Sender;
-					byte[] aesKey = message.EncryptedContent!;
-					_ = _sessionKeys!.TryAdd(username, _rsaEncryption!.DecryptSessionKey(aesKey));
+					byte[] encryptedSessionKey = message.EncryptedContent!;
+					
+					ReceiveEncryptedSessionKey(username, encryptedSessionKey);
+					/**
+					_ = _sessionKeys!.TryAdd(username, _keyExchange!.DecryptSessionKey(encryptedSessionKey));
+					**/
 				}else if(message.Sender == "Server" && message.Request == "list room members")
 				{
 					string roomName = message.RoomName!;
@@ -224,7 +242,7 @@ public class Client
 					}
 					else
 					{
-						_aesEncryption = new AesEncryption(_sessionKeys![message.Sender]);
+						_aesEncryption = new AesEncryption(_privateKey!);
 						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
 
 						Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedContent)!;
@@ -259,6 +277,47 @@ public class Client
             OnDisconnected?.Invoke(_serverEndpoint);
         }
         
+	}
+
+
+	public void SendEncryptedSessionKey(string username)
+	{
+		byte[]? peerPublicKey;
+		if (!_peerPublicKeys!.TryGetValue(username, out peerPublicKey) || peerPublicKey == null)
+		{
+			Console.WriteLine("{Client.cs SendEncryptedSessionKey} Peer public key not found for " + username);
+			return;
+		}
+
+		//create encrypted session key from peer public key
+		_keyExchange!.ReceivePublicKey(peerPublicKey);
+		byte[] encryptedSessionKey = _keyExchange!.CreateEncryptedSessionKey(); //placeholder
+		
+		//store this peer's symmetric session key (non-encrypted)
+		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!);
+		Message sessionKeyMessage = new Message
+		{
+			Type = MessageType.SessionKey,
+			Sender = _username,
+			TargetPeerId = username,
+			EncryptedContent = encryptedSessionKey
+		};
+
+		SendTo(username, sessionKeyMessage);
+	}
+
+	public void ReceiveEncryptedSessionKey(string username, byte[] encryptedSessionKey)
+	{
+		byte[]? peerPublicKey;
+		if (!_peerPublicKeys!.TryGetValue(username, out peerPublicKey) || peerPublicKey == null)
+		{
+			Console.WriteLine("{Client.cs ReceiveEncryptedSessionKey} Peer public key not found for " + username);
+			return;
+		}
+
+		_keyExchange!.ReceivePublicKey(peerPublicKey);
+		_keyExchange!.ReceiveEncryptedSessionKey(encryptedSessionKey);
+		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!);
 	}
 
 	/// <summary>
@@ -301,38 +360,25 @@ public class Client
 		{
 			try
 			{
-				var (prefix, payload) = MessageUtils.MessageToBytes(message);
-
-				// get recipient's public key
-				byte[]? peerPublicKey;
-				_peerPublicKeys!.TryGetValue(username, out peerPublicKey);
-
-				// try to get the recipient's private AES key
-				byte[]? peerPrivateAesKey; 
-				_sessionKeys!.TryGetValue(username, out peerPrivateAesKey);
-				
-				// if null (first time messaging this user)
-				if (peerPrivateAesKey == null)
+				if(!_sessionKeys!.ContainsKey(username))
 				{
-					byte[] peerAesKey = AesEncryption.GenerateKey();
-					_sessionKeys!.TryAdd(username, peerAesKey);
-
-					Message sessionKeyMessage = new Message
-					{
-						Type = MessageType.SessionKey,
-						Sender = _username,
-						TargetPeerId = username,
-						EncryptedContent = _rsaEncryption!.EncryptSessionKey(peerAesKey, peerPublicKey!)
-					};
-
-					Send(sessionKeyMessage);
+					SendEncryptedSessionKey(username);
 				}
 
-				_aesEncryption = new AesEncryption(_sessionKeys![username]);
+				byte[]? sessionKey;
+				if (!_sessionKeys!.TryGetValue(username, out sessionKey) || sessionKey == null)
+				{
+					Console.WriteLine("{Client.cs SendTo} Session key not found for " + username);
+					return;
+				}
+
+				_aesEncryption = new AesEncryption(sessionKey);
+				
+				var (prefix, payload) = MessageUtils.MessageToBytes(message);	
 				byte[] encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
 				byte[] signature = _messageSigner!.SignData(encryptedPayload);
 
-				Message regularMessage = new Message()
+				Message encryptedMessage = new Message()
 				{
 					Type = MessageType.Text,
 					Sender = _username,
@@ -342,7 +388,7 @@ public class Client
 					Signature = signature
 				};
 
-				Send(regularMessage);
+				Send(encryptedMessage);
 			}
 			catch (IOException)
 			{

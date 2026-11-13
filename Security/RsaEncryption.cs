@@ -104,4 +104,16 @@ public class RsaEncryption
 	{
 		_rsa?.Dispose();
 	}
+
+
+	///     Added by me for additional RSA encryption/decryption methods.
+	public void ImportPrivateKey(byte[] privateKey)
+	{
+		_rsa.ImportRSAPrivateKey(privateKey, out _);
+	}
+
+	public byte[] ExportPrivateKey()
+	{
+		return _rsa.ExportRSAPrivateKey();
+	}
 }
