@@ -204,12 +204,9 @@ public class Client
 				}else if(message.Sender == "Server" && message.Request == "list room members")
 				{
 					string roomName = message.RoomName!;
-					string[] members = message.Content.Split(',');
-					_roomMembers!.TryAdd(roomName, members);
-					//lock (lockObject)
-					//{
+					string[] members = message.Content.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+					_roomMembers![roomName] = members;
 					_userListReceived = true;
-					//}
 				}
 				else if(message.Type == MessageType.Text && message.EncryptedContent != null)
 				{
@@ -334,6 +331,8 @@ public class Client
 				{
 					Type = MessageType.Text,
 					Sender = _username,
+					TargetPeerId = username,
+					RoomName = message.RoomName,
 					EncryptedContent = encryptedPayload,
 					Signature = signature
 				};
@@ -367,21 +366,14 @@ public class Client
 				Sender = _username,
 				RoomName = roomName
 			};
+			_userListReceived = false;
+			message.RoomName = roomName;
 			
 			Send(getRoomMembersMessage);
 
-			
 			while (!_userListReceived)
 			{
-
-					if (!_userListReceived)
-					{
-						continue;
-					}
-					else
-					{
-						break;
-					}
+				await Task.Delay(10);
 			}
 
 			string[] usernames = _roomMembers![roomName];

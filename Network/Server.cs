@@ -290,6 +290,11 @@ public class Server
 		return string.Join(", ", members);
 	}
 
+	public bool IsRoomMember(string username, string roomName)
+	{
+		return _rooms.TryGetValue(roomName, out var members) && members.Contains(username);
+	}
+
 	public void AddPublicKey(string username, byte[] publicKey)
 	{
 		_publicKeys.TryAdd(username, publicKey);

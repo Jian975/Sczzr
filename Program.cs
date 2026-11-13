@@ -121,6 +121,22 @@ internal class Program
 						break;
 				}
 			}
+			else if (message.Type == MessageType.Text && !string.IsNullOrEmpty(message.TargetPeerId))
+			{
+				if (!string.IsNullOrEmpty(message.RoomName) &&
+					(!_server!.IsRoomMember(message.Sender, message.RoomName) ||
+					 !_server.IsRoomMember(message.TargetPeerId, message.RoomName)))
+				{
+					_consoleUI.DisplaySystem($"Rejected room message from {message.Sender} to {message.TargetPeerId}: not a room member");
+					return;
+				}
+
+				string? recipientEndpoint = _server!.GetEndpointByUsername(message.TargetPeerId);
+				if (recipientEndpoint != null)
+				{
+					_server.SendTo(recipientEndpoint, message);
+				}
+			}
 			//if message to room then broadcast to that group only
 			else if (message.RoomName != null && message.RoomName != "")
 			{
