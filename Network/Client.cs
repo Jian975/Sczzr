@@ -98,7 +98,6 @@ public class Client
 			_rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
 			
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
-			_aesEncryption = new AesEncryption(_publicKey);
 
 			//todo: uncomment these lines once encryption doesn't throw an not implemented err
 			//_rsaEncryption = new RsaEncryption();
@@ -310,6 +309,7 @@ public class Client
 					Send(sessionKeyMessage);
 				}
 
+				_aesEncryption = new AesEncryption(_sessionKeys![username]);
 				byte[] encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
 				byte[] signature = _messageSigner!.SignData(encryptedPayload);
 
