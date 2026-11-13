@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using SecureMessenger.Core;
 using SecureMessenger.Security;
 
@@ -96,7 +97,6 @@ public class Client
 			_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			
 			_rsaEncryption = new RsaEncryption(_rsa);
-			_rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
 			
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
 
@@ -224,12 +224,8 @@ public class Client
 					{
 						_aesEncryption = new AesEncryption(_sessionKeys![message.Sender]);
 						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
-						Message decryptedMessage = new Message
-						{
-							Sender = message.Sender,
-							Type = message.Type,
-							Content = decryptedContent
-						};
+
+						Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedContent)!;
 
 						OnMessageReceived?.Invoke(decryptedMessage);
 					}

@@ -73,7 +73,8 @@ public class KeyExchange
 
 	public byte[] GetPrivateKey()
 	{
-		return _rsa!.ExportPrivateKey();
+		return null;
+		//return _rsa!.ExportPrivateKey();
 	}
 
 	/// <summary>

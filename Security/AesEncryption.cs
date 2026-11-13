@@ -114,8 +114,10 @@ public class AesEncryption
 		aes.Key = _key;
 		aes.Mode = CipherMode.CBC;
 
-		aes.IV = new byte[16];
-		Buffer.BlockCopy(ciphertext, 0, aes.IV, 0, 16);
+		//need local variable for IV instead of writing to aes.IV
+		byte[] iv = new byte[16];
+		Buffer.BlockCopy(ciphertext, 0, iv, 0, iv.Length);
+		aes.IV = iv;
 
 		byte[] cypherBytes = new byte[ciphertext.Length - 16];
 		Buffer.BlockCopy(ciphertext, 16, cypherBytes, 0, cypherBytes.Length);
