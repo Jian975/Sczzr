@@ -42,10 +42,9 @@ public class Client
 
 	private AesEncryption? _aesEncryption;
 
-	private byte[]? privateAesKey;
+	private byte[]? _privateKey;
 
 	private ConcurrentDictionary<string, byte[]>? _sessionKeys = new ConcurrentDictionary<string, byte[]>(); //peer private aes keys
-    private object _peerPrivateAesKeys;
 
     public string _username { get; set; } = "User";
 
@@ -91,8 +90,11 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
+			 //get private key bytes
+
 			_rsa = RSA.Create();
 			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
+			_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			
 			_rsaEncryption = new RsaEncryption();
 			_rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
@@ -209,6 +211,29 @@ public class Client
 					//{
 					_userListReceived = true;
 					//}
+				}
+				else if(message.Type == MessageType.Text && message.EncryptedContent != null)
+				{
+					// Handle text message
+					bool signatureValid = _messageSigner!.VerifyData(message.EncryptedContent, message.Signature!, _peerPublicKeys![message.Sender]);
+					if (!signatureValid)
+					{
+						Console.WriteLine("Invalid signature for text message from " + message.Sender);
+						return;
+					}
+					else
+					{
+						_aesEncryption = new AesEncryption(_peerPublicKeys![message.Sender]);
+						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
+						Message decryptedMessage = new Message
+						{
+							Sender = message.Sender,
+							Type = message.Type,
+							Content = decryptedContent
+						};
+
+						OnMessageReceived?.Invoke(decryptedMessage);
+					}
 				}
 				else
 				{
