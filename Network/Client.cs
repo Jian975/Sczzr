@@ -299,6 +299,7 @@ public class Client
 					{
 						Type = MessageType.SessionKey,
 						Sender = _username,
+						TargetPeerId = username,
 						EncryptedContent = _rsaEncryption!.EncryptSessionKey(peerAesKey, peerPublicKey!)
 					};
 
