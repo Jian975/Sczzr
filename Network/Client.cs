@@ -205,11 +205,6 @@ public class Client
 							}
 						}
 					}
-					foreach (var item in _peerPublicKeys!)
-					{
-						Console.WriteLine($"{item.Key}: {item.Value}");
-					}
-					
 				}else if (message.Type == MessageType.SessionKey)
 				{
 					string username = message.Sender;
@@ -242,7 +237,12 @@ public class Client
 					}
 					else
 					{
-						_aesEncryption = new AesEncryption(_privateKey!);
+						if (!_sessionKeys!.TryGetValue(message.Sender, out byte[]? sessionKey))
+						{
+							Console.WriteLine("Session key not found for " + message.Sender);
+							continue;
+						}
+						_aesEncryption = new AesEncryption(sessionKey);
 						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
 
 						Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedContent)!;
@@ -303,7 +303,7 @@ public class Client
 			EncryptedContent = encryptedSessionKey
 		};
 
-		SendTo(username, sessionKeyMessage);
+		Send(sessionKeyMessage);
 	}
 
 	public void ReceiveEncryptedSessionKey(string username, byte[] encryptedSessionKey)
