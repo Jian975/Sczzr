@@ -207,6 +207,11 @@ public class Client
 					string[] members = message.Content.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 					_roomMembers![roomName] = members;
 					_userListReceived = true;
+				} else if (message.Sender == "Server" && message.Request == "list all users")
+				{
+					string[] members = message.Content.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+					_roomMembers!["all"] = members;
+					_userListReceived = true;
 				}
 				else if(message.Type == MessageType.Text && message.EncryptedContent != null)
 				{
@@ -354,6 +359,32 @@ public class Client
 		}
 	}
 
+	public async Task Broadcast(Message message)
+	{
+		if (IsConnected)
+		{
+			Message getUserListMessage = new Message
+			{
+				Type = MessageType.Instruction,
+				Content = "list all users",
+				Sender = _username
+			};
+			_userListReceived = false;
+			Send(getUserListMessage);
+
+			while (!_userListReceived)
+			{
+				await Task.Delay(10);
+			}
+
+			string[] usernames = _roomMembers!["all"];
+
+			foreach (string user in usernames)
+			{
+				SendTo(user, message);
+			}
+		}
+	}
 	public async Task SendToRoom(string roomName, Message message)
 	{
 		if (IsConnected)

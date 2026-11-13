@@ -278,6 +278,11 @@ public class Server
 		return _rooms.Keys.ToList();
 	}
 
+	public string GetAllUsers()
+	{
+		return string.Join(", ", _usernamesToEndpoints.Keys);
+	}
+
 	public string GetRoomMembers(string roomName)
 	{
 		var members = _rooms[roomName].ToList();

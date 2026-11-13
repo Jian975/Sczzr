@@ -116,6 +116,18 @@ internal class Program
 						};
 						_server!.SendTo(endpoint, memberListMessage);
 						break;
+					case "list all users":
+						var allUsers = _server!.GetAllUsers();
+						var allUsersMessage = new Message
+						{
+							Sender = "Server",
+							Content = allUsers,
+							Type = MessageType.Text,
+							Timestamp = DateTime.Now,
+							Request = "list all users"
+						};
+						_server!.SendTo(endpoint, allUsersMessage);
+						break;
 					default:
 						_consoleUI.DisplaySystem($"Unknown instruction: {message.Content}");
 						break;
@@ -256,7 +268,7 @@ internal class Program
 			{
 				// send as a chat message
 				if (_client!.IsConnected) {
-					SendMessage(input);
+					Broadcast(new Message { Content = input, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now });
 
 				} else {
 					Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
@@ -344,5 +356,17 @@ internal class Program
     private static void SendToRoom(string roomName, string text)
 	{
 		_client!.SendToRoom(roomName, new Message { Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
+	}
+
+	private static void Broadcast(Message message)
+	{
+		if (_client!.IsConnected)
+		{
+			_client.Broadcast(message);
+		}
+		else
+		{
+			Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
+		}
 	}
 }
