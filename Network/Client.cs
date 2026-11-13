@@ -47,7 +47,7 @@ public class Client
 	private ConcurrentDictionary<string, byte[]>? _sessionKeys = new ConcurrentDictionary<string, byte[]>(); //peer private aes keys
     private object _peerPrivateAesKeys;
 
-    public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
+    public string _username { get; set; } = "User";
 
 	private ConcurrentDictionary<string, string[]>? _roomMembers = new ConcurrentDictionary<string, string[]>();
 
@@ -108,6 +108,7 @@ public class Client
 			//send public key to server
 			Message keyExchange = new Message()
 			{
+				Sender = _username,
 				PublicKey = _publicKey,
 				Type = MessageType.KeyExchange,
 				Timestamp = DateTime.Now

@@ -23,7 +23,6 @@ internal class Program
 	private static Server? _server;
 	private static Client? _client;
 	// private static ConsoleUI? _ui;
-	private static string _username = "User";
 
 	private static ConsoleUI? _consoleUI;
 
@@ -202,7 +201,7 @@ internal class Program
 						if (inputCmd.Args![0] == "Server") {
 							Console.WriteLine("Username cannot be 'Server'.");
 						} else {
-							_username = inputCmd.Args![0];
+							_client!._username = inputCmd.Args![0].Trim();
 						}
 						break;
 					case CommandType.Quit:
@@ -294,7 +293,7 @@ internal class Program
 
 	private static void SendMessage(string text)
 	{
-		_client!.Send(new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, });
+		_client!.Send(new Message { Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now, });
 	}
 
 	//added in sprint 2:
@@ -302,37 +301,37 @@ internal class Program
 	//create
 	private static void CreateRoom(string roomName)
 	{
-		_client!.Send(new Message { Content = "create", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message { Content = "create", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//join
 	private static void AddToRoom(string roomName, string endpoint)
 	{
-		_client!.Send(new Message { Content = "join", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message { Content = "join", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//leave
 	private static void RemoveFromRoom(string roomName, string endpoint)
 	{
-		_client!.Send(new Message { Content = "leave", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message { Content = "leave", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
     }
 
 	//rooms
 	private static void ListRooms()
 	{
-		_client!.Send(new Message { Content = "list rooms", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
+		_client!.Send(new Message { Content = "list rooms", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
 	}
 
 	//members
 	private static void ListMembers(string roomName)
 	{
-		_client!.Send(new Message { Content = "list room members", Sender = _username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message { Content = "list room members", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 
 	//msg
 	//TODO: set security fields
     private static void SendToRoom(string roomName, string text)
 	{
-		_client!.SendToRoom(roomName, new Message { Content = text, Sender = _username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.SendToRoom(roomName, new Message { Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
 	}
 }
