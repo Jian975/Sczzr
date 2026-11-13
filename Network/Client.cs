@@ -49,6 +49,12 @@ public class Client
 
     public string _username { get; private set; } = "";	//TODO: move username storage from Program to Client during sprint 3
 
+	private ConcurrentDictionary<string, string[]>? _roomMembers = new ConcurrentDictionary<string, string[]>();
+
+	private Boolean _userListReceived = false;
+
+	private Object lockObject = new Object();
+
     /// <summary> 
     ///     If the connection is successful, it initializes the network stream, 
     ///     saves the server endpoint, fires the OnConnected event, 
@@ -193,7 +199,16 @@ public class Client
 				{
 					string username = message.Sender;
 					byte[] aesKey = message.EncryptedContent!;
-					_ = _sessionKeys!.TryAdd(username, aesKey);
+					_ = _sessionKeys!.TryAdd(username, _rsaEncryption!.DecryptSessionKey(aesKey));
+				}else if(message.Sender == "Server" && message.Request == "list room members")
+				{
+					string roomName = message.RoomName!;
+					string[] members = message.Content.Split(',');
+					_roomMembers!.TryAdd(roomName, members);
+					lock (lockObject)
+					{
+						_userListReceived = true;
+					}
 				}
 				
                 // Fire the OnMessageReceived event
@@ -260,7 +275,7 @@ public class Client
 		{
 			try
 			{
-				if (!_sessionKeys.ContainsKey(username))
+				if (!_sessionKeys!.ContainsKey(username))
 				{
 					Console.WriteLine("No session key found for the specified username");
 					return;
@@ -279,7 +294,7 @@ public class Client
 				{
 
 					byte[] peerAesKey = AesEncryption.GenerateKey();
-					_sessionKeys.TryAdd(username, peerAesKey);
+					_sessionKeys!.TryAdd(username, peerAesKey);
 
 					Message sessionKeyMessage = new Message
 					{
@@ -315,6 +330,46 @@ public class Client
 			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
+			}
+		}
+	}
+
+	public async Task SendToRoom(string roomName, Message message)
+	{
+		if (IsConnected)
+		{
+			
+			Message getRoomMembersMessage = new Message
+			{
+				Type = MessageType.Instruction,
+				Content = "list members",
+				Sender = _username,
+				RoomName = roomName
+			};
+			
+			Send(getRoomMembersMessage);
+
+			
+			while (!_userListReceived)
+			{
+				lock (lockObject)
+				{
+					if (!_userListReceived)
+					{
+						continue;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+
+			string[] usernames = _roomMembers![roomName];
+
+			foreach (string user in usernames)
+			{
+				SendTo(user, message);
 			}
 		}
 	}
