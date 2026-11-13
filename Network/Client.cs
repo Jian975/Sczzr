@@ -281,15 +281,16 @@ public class Client
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
 				// get recipient's public key
-				byte[] peerPublicKey = _peerPublicKeys![username];
+				byte[]? peerPublicKey;
+				_peerPublicKeys!.TryGetValue(username, out peerPublicKey);
 
 				// try to get the recipient's private AES key
-				byte[]? peerPrivateAesKey = _sessionKeys![username];
+				byte[]? peerPrivateAesKey; 
+				_sessionKeys!.TryGetValue(username, out peerPrivateAesKey);
 				
 				// if null (first time messaging this user)
 				if (peerPrivateAesKey == null)
 				{
-
 					byte[] peerAesKey = AesEncryption.GenerateKey();
 					_sessionKeys!.TryAdd(username, peerAesKey);
 
@@ -297,7 +298,7 @@ public class Client
 					{
 						Type = MessageType.SessionKey,
 						Sender = _username,
-						EncryptedContent = _rsaEncryption!.EncryptSessionKey(peerAesKey, peerPublicKey)
+						EncryptedContent = _rsaEncryption!.EncryptSessionKey(peerAesKey, peerPublicKey!)
 					};
 
 					Send(sessionKeyMessage);
