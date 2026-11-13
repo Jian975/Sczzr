@@ -223,7 +223,7 @@ public class Client
 					}
 					else
 					{
-						_aesEncryption = new AesEncryption(_peerPublicKeys![message.Sender]);
+						_aesEncryption = new AesEncryption(_sessionKeys![message.Sender]);
 						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
 						Message decryptedMessage = new Message
 						{
