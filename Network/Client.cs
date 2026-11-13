@@ -96,7 +96,7 @@ public class Client
 			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
 			_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			
-			_rsaEncryption = new RsaEncryption();
+			_rsaEncryption = new RsaEncryption(_rsa);
 			_rsaEncryption.ImportPublicKey(_publicKey); //import the public key into the RSA encryption instance
 			
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
