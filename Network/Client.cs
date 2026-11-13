@@ -278,12 +278,6 @@ public class Client
 		{
 			try
 			{
-				if (!_sessionKeys!.ContainsKey(username))
-				{
-					Console.WriteLine("No session key found for the specified username");
-					return;
-				}
-
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
 				// get recipient's public key
