@@ -356,8 +356,7 @@ public class Client
 			
 			while (!_userListReceived)
 			{
-				lock (lockObject)
-				{
+
 					if (!_userListReceived)
 					{
 						continue;
@@ -366,7 +365,6 @@ public class Client
 					{
 						break;
 					}
-				}
 			}
 
 			string[] usernames = _roomMembers![roomName];
