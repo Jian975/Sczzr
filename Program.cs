@@ -199,7 +199,11 @@ internal class Program
 						HandlePeers();
 						break;
 					case CommandType.Username:
-						_username = inputCmd.Args![0];
+						if (inputCmd.Args![0] == "Server") {
+							Console.WriteLine("Username cannot be 'Server'.");
+						} else {
+							_username = inputCmd.Args![0];
+						}
 						break;
 					case CommandType.Quit:
 						running = false;
