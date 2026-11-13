@@ -204,10 +204,10 @@ public class Client
 					string roomName = message.RoomName!;
 					string[] members = message.Content.Split(',');
 					_roomMembers!.TryAdd(roomName, members);
-					lock (lockObject)
-					{
-						_userListReceived = true;
-					}
+					//lock (lockObject)
+					//{
+					_userListReceived = true;
+					//}
 				}
 				else
 				{
@@ -278,12 +278,6 @@ public class Client
 		{
 			try
 			{
-				if (!_sessionKeys!.ContainsKey(username))
-				{
-					Console.WriteLine("No session key found for the specified username");
-					return;
-				}
-
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
 				// get recipient's public key
