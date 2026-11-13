@@ -90,9 +90,8 @@ public class Client
             // Save the endpoint string
             _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
-			 //get private key bytes
-
-			_rsa = RSA.Create();
+			//get private key bytes
+			_rsa = RSA.Create(2048);
 			_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
 			_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			
