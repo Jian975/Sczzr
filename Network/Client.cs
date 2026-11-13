@@ -210,9 +210,13 @@ public class Client
 						_userListReceived = true;
 					}
 				}
+				else
+				{
+					// Fire the OnMessageReceived event
+                	OnMessageReceived?.Invoke(message);
+				}
 				
-                // Fire the OnMessageReceived event
-                OnMessageReceived?.Invoke(message);
+                
             }
 		}
 		catch (OperationCanceledException)
