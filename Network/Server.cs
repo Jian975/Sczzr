@@ -254,59 +254,82 @@ public class Server
 		}
 	}
 
-	//TODO: implement stubs for methods needed by program.cs for sprint 2;
-	//first 4 are just manipulating/printing from dictionary, while last either just
-	//loops over SendTo or mostly copies its code
+	/// <summary>
+	///     Creates a new message room with a specific name.
+	/// </summary>
 	public void CreateRoom(string roomName)
 	{
 		if (!_rooms.ContainsKey(roomName))
 		{
-			//todo: print err msg if this fails
-			_rooms.TryAdd(roomName, new HashSet<string>());
+			_rooms.TryAdd(roomName, new HashSet<string>()); // adding the room to the room dict
 		}
 	}
 
+	/// <summary>
+	///     Adds a new user to a room.
+	/// </summary>
 	public void AddToRoom(string username, string roomName)
 	{
-		CreateRoom(roomName); //only creates if it doesn't exist
-		_rooms[roomName].Add(username);
+		CreateRoom(roomName); // creates a room if it didn't exist yet
+		_rooms[roomName].Add(username); // adds the new user
 	}
 
+	/// <summary>
+	///     Removes a user from a room.
+	/// </summary>
 	public void RemoveFromRoom(string username, string roomName)
 	{
-		_rooms[roomName].Remove(username);
+		_rooms[roomName].Remove(username); // removes the user
 	}
 
+	/// <summary>
+	///     Returns a list of all stored chat rooms.
+	/// </summary>
 	public List<string> ListRooms()
 	{
 		return _rooms.Keys.ToList();
 	}
 
+	/// <summary>
+	///     Gets a list of all active users.
+	/// </summary>
 	public string GetAllUsers()
 	{
 		return string.Join(", ", _usernamesToEndpoints.Keys);
 	}
 
+	/// <summary>
+	///     Gets a list of all members in an inputted chat room.
+	/// </summary>
 	public string GetRoomMembers(string roomName)
 	{
 		var members = _rooms[roomName].ToList();
 		return string.Join(", ", members);
 	}
 
+	/// <summary>
+	///     Returns true if the entered user is a member of the chat room, and false otherwise.
+	/// </summary>
 	public bool IsRoomMember(string username, string roomName)
 	{
 		return _rooms.TryGetValue(roomName, out var members) && members.Contains(username);
 	}
 
+	/// <summary>
+	///     Saves a user's public key to the public key dictionary.
+	/// </summary>
 	public void AddPublicKey(string username, byte[] publicKey)
 	{
 		_publicKeys.TryAdd(username, publicKey);
 	}
 
-	// Sends all public keys to all connected clients. This is used for peer discovery and key exchange.
-	// Message format: username:base64(publicKey),username:base64(publicKey),...
+	/// <summary>
+	///     Sends all public keys to all connected clients. This is used for peer discovery and key exchange.
+	///     Message format: username:base64(publicKey),username:base64(publicKey),...
+	/// </summary>
 	public void BroadcastPublicKeys()
 	{
+		// vvv creates a string of all stored public keys
 		var publicKeyString = "";
 		foreach (var kvp in _publicKeys)
 		{
@@ -320,14 +343,20 @@ public class Server
 			Type = MessageType.KeyExchange,
 			Timestamp = DateTime.Now
 		};
-		Broadcast(message);
+		Broadcast(message); // sends the public key string to all client
 	}
 
+	/// <summary>
+	///     Saves a specific username to a specific endpoint.
+	/// </summary>
 	public void AddUsername(string username, string endpoint)
 	{
 		_usernamesToEndpoints.TryAdd(username, endpoint);
 	}
 
+	/// <summary>
+	///     Removes the saved username for a specific endpoint.
+	/// </summary>
 	public void RemoveUsername(string endpoint)
 	{
 		var username = _usernamesToEndpoints.FirstOrDefault(kvp => kvp.Value == endpoint).Key;
@@ -337,6 +366,9 @@ public class Server
 		}
 	}
 
+	/// <summary>
+	///     Gets the endpoint for a user by their username.
+	/// </summary>
 	public string? GetEndpointByUsername(string username)
 	{
 		if (_usernamesToEndpoints.TryGetValue(username, out var endpoint))
