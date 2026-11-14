@@ -69,7 +69,6 @@ public class Client
 	///     endpoint string, fire OnConnected, and start ReceiveAsync on a
 	///     background Task. Return true.
 	///     If anything throws, log the error and return false.
-	///     TODO: add key exchange (call to KeyExchange) for rsa public keys
 	/// </summary>
 	public async Task<bool> ConnectAsync(string host, int port)
 	{
@@ -95,14 +94,8 @@ public class Client
 			_rsa = RSA.Create(2048);
 			_rsa.ImportRSAPublicKey(_publicKey, out _);
 			_rsa.ImportRSAPrivateKey(_privateKey, out _);
-			//_publicKey = _rsa.ExportRSAPublicKey(); //get public key bytes
-			//_privateKey = _rsa.ExportRSAPrivateKey(); //get private key bytes
 			_messageSigner = new MessageSigner(_rsa); //create message signer with the RSA instance
-
-			//todo: uncomment these lines once encryption doesn't throw an not implemented err
-			//_rsaEncryption = new RsaEncryption();
-			//_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
-			// Fire the OnConnected event
+			
 			OnConnected?.Invoke(_serverEndpoint);
 
 			//send public key to server
@@ -278,7 +271,9 @@ public class Client
 		}
 	}
 
-
+	/// <summary>
+	///     Sends an AES key to a user with RSA key exchange.
+	/// </summary>
 	public void SendEncryptedSessionKey(string username)
 	{
 		byte[]? peerPublicKey;
@@ -288,11 +283,11 @@ public class Client
 			return;
 		}
 
-		//create encrypted session key from peer public key
+		// create encrypted session key from peer public key
 		_keyExchange!.ReceivePublicKey(peerPublicKey);
-		var encryptedSessionKey = _keyExchange!.CreateEncryptedSessionKey(); //placeholder
+		var encryptedSessionKey = _keyExchange!.CreateEncryptedSessionKey(); // placeholder
 
-		//store this peer's symmetric session key (non-encrypted)
+		// store this peer's symmetric session key (non-encrypted)
 		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!);
 		var sessionKeyMessage = new Message
 		{
@@ -305,8 +300,12 @@ public class Client
 		Send(sessionKeyMessage);
 	}
 
+	/// <summary>
+	///     Handles the receiver side of the key exchange process. Stores AES keys for each peer.
+	/// </summary>
 	public void ReceiveEncryptedSessionKey(string username, byte[] encryptedSessionKey)
 	{
+		// vvv get the public key of the sender
 		byte[]? peerPublicKey;
 		if (!_peerPublicKeys!.TryGetValue(username, out peerPublicKey) || peerPublicKey == null)
 		{
@@ -314,9 +313,9 @@ public class Client
 			return;
 		}
 
-		_keyExchange!.ReceivePublicKey(peerPublicKey);
-		_keyExchange!.ReceiveEncryptedSessionKey(encryptedSessionKey);
-		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!);
+		_keyExchange!.ReceivePublicKey(peerPublicKey); // convert the key from bytes
+		_keyExchange!.ReceiveEncryptedSessionKey(encryptedSessionKey); // get the encrypted AES key
+		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!); // store this AES key
 	}
 
 	/// <summary>
@@ -353,17 +352,21 @@ public class Client
 		}
 	}
 
+	/// <summary>
+	///     Sends a message directly to an inputted user.
+	/// </summary>
 	public void SendTo(string username, Message message)
 	{
 		if (IsConnected)
 		{
 			try
 			{
-				if (!_sessionKeys!.ContainsKey(username))
+				if (!_sessionKeys!.ContainsKey(username)) // checks if we already have an AES key with this user
 				{
-					SendEncryptedSessionKey(username);
+					SendEncryptedSessionKey(username); // if no AES key, do key exchange
 				}
 
+				// vvv retrieve AES session key
 				byte[]? sessionKey;
 				if (!_sessionKeys!.TryGetValue(username, out sessionKey) || sessionKey == null)
 				{
@@ -372,10 +375,10 @@ public class Client
 				}
 
 				_aesEncryption = new AesEncryption(sessionKey);
-
-				var (prefix, payload) = MessageUtils.MessageToBytes(message);
-				var encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
-				var signature = _messageSigner!.SignData(encryptedPayload);
+				
+				var (prefix, payload) = MessageUtils.MessageToBytes(message); // vvv convert the message to bytes
+				var encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload)); // encrypt the message
+				var signature = _messageSigner!.SignData(encryptedPayload); // sign the message
 
 				var encryptedMessage = new Message
 				{
@@ -387,7 +390,7 @@ public class Client
 					Signature = signature
 				};
 
-				Send(encryptedMessage);
+				Send(encryptedMessage); // send the message
 			}
 			catch (IOException)
 			{
@@ -404,6 +407,9 @@ public class Client
 		}
 	}
 
+	/// <summary>
+	///     Sends a message to all online users.
+	/// </summary>
 	public async Task Broadcast(Message message)
 	{
 		if (IsConnected)
@@ -413,24 +419,27 @@ public class Client
 				Type = MessageType.Instruction,
 				Content = "list all users",
 				Sender = _username
-			};
+			}; // building a message to get all users
 			_userListReceived = false;
 			Send(getUserListMessage);
 
-			while (!_userListReceived)
+			while (!_userListReceived) // vvv wait until the member list is received 
 			{
 				await Task.Delay(10);
 			}
 
 			var usernames = _roomMembers!["all"];
 
-			foreach (var user in usernames)
+			foreach (var user in usernames) // vvv sends the message to each user in the room individually
 			{
 				SendTo(user, message);
 			}
 		}
 	}
-
+	
+	/// <summary>
+	///     Sends a message to the users in a chat room by the room's name.
+	/// </summary>
 	public async Task SendToRoom(string roomName, Message message)
 	{
 		if (IsConnected)
@@ -441,27 +450,30 @@ public class Client
 				Content = "list room members",
 				Sender = _username,
 				RoomName = roomName
-			};
+			}; // build a message to retrieve the members of the room
 			_userListReceived = false;
 			message.RoomName = roomName;
 
 			Send(getRoomMembersMessage);
 
-			while (!_userListReceived)
+			while (!_userListReceived) // vvv wait until the member list is received
 			{
 				await Task.Delay(10);
 			}
 
 			var usernames = _roomMembers![roomName];
 
-			foreach (var user in usernames)
+			foreach (var user in usernames) // vvv sends the message to each user in the room individually
 			{
 				SendTo(user, message);
 			}
 		}
 	}
 
-	//TODO: figure out a better solution
+	// TODO: figure out a better solution
+	/// <summary>
+	///     Gets the address of the client.
+	/// </summary>
 	public string getAddress()
 	{
 		return _client?.Client.RemoteEndPoint?.ToString() ?? string.Empty;
