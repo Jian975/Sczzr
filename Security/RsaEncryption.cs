@@ -1,4 +1,4 @@
-// Lydia Barriga
+// Lydia Barriga (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption

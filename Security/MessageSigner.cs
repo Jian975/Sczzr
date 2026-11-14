@@ -1,4 +1,4 @@
-// Jackson Welde
+// Jackson Welde (sprint 2)
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 2: Security & Encryption
@@ -49,12 +49,14 @@ public class MessageSigner
 		try
 		{
 			using var rsa = RSA.Create();
-			rsa.ImportRSAPublicKey(publicKey, out _);
+			rsa.ImportRSAPublicKey(publicKey, out _); // get public key
 
-			var isValid = rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+			var isValid = rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1); // check if the data was tampered with
 
 			if (!isValid)
+			{
 				Console.WriteLine("WARNING: Invalid signature detected - message may be tampered!");
+			}
 
 			return isValid;
 		}
