@@ -78,7 +78,7 @@ public class RsaEncryption
 	/// </summary>
 	public byte[] EncryptSessionKey(byte[] aesKey, byte[] peerPublicKey)
 	{
-		RSA peerRsa = RSA.Create(2048);
+		var peerRsa = RSA.Create(2048);
 		peerRsa.ImportRSAPublicKey(peerPublicKey, out _);
 		return peerRsa.Encrypt(aesKey, RSAEncryptionPadding.OaepSHA256);
 		//throw new NotImplementedException("Implement EncryptSessionKey() - see TODO in comments above");
@@ -106,7 +106,7 @@ public class RsaEncryption
 	}
 
 
-	///     Added by me for additional RSA encryption/decryption methods.
+	/// Added by me for additional RSA encryption/decryption methods.
 	public void ImportPrivateKey(byte[] privateKey)
 	{
 		_rsa.ImportRSAPrivateKey(privateKey, out _);

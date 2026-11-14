@@ -34,8 +34,7 @@ public enum ConnectionState
 public class KeyExchange
 {
 	private byte[]? _peerPublicKey;
-	private RsaEncryption? _rsa;
-	private byte[]? _sessionKey;
+	private readonly RsaEncryption? _rsa;
 
 	/// <summary>
 	///     Initialize the key exchange by creating our RSA key pair.
@@ -46,7 +45,7 @@ public class KeyExchange
 	}
 
 	public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
-	public byte[]? SessionKey => _sessionKey;
+	public byte[]? SessionKey { get; private set; }
 
 	/// <summary>
 	///     Check if key exchange is complete and we have a valid session key.
@@ -81,9 +80,9 @@ public class KeyExchange
 	/// </summary>
 	public byte[] CreateEncryptedSessionKey()
 	{
-		_sessionKey = AesEncryption.GenerateKey();
+		SessionKey = AesEncryption.GenerateKey();
 		State = ConnectionState.SendingSessionKey;
-		return _rsa!.EncryptSessionKey(_sessionKey, _peerPublicKey!);
+		return _rsa!.EncryptSessionKey(SessionKey, _peerPublicKey!);
 	}
 
 	/// <summary>
@@ -91,7 +90,7 @@ public class KeyExchange
 	/// </summary>
 	public void ReceiveEncryptedSessionKey(byte[] encryptedKey)
 	{
-		_sessionKey = _rsa!.DecryptSessionKey(encryptedKey);
+		SessionKey = _rsa!.DecryptSessionKey(encryptedKey);
 		State = ConnectionState.Established;
 	}
 

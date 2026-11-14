@@ -12,15 +12,17 @@ namespace SecureMessenger;
 
 public class MessageUtils
 {
+	private const int MEGABYTE_LENGTH = 1048576;
+
 	/// <summary>
 	///     Converts the inputted message to length and payload bytes.
 	/// </summary>
 	public static (byte[] lengthBytes, byte[] payload) MessageToBytes(Message message)
 	{
-		string json = JsonSerializer.Serialize(message);
-		byte[] payload = Encoding.UTF8.GetBytes(json);
+		var json = JsonSerializer.Serialize(message);
+		var payload = Encoding.UTF8.GetBytes(json);
 
-		byte[] lengthBytes = BitConverter.GetBytes(payload.Length);
+		var lengthBytes = BitConverter.GetBytes(payload.Length);
 
 		return (lengthBytes, payload);
 	}
@@ -30,8 +32,8 @@ public class MessageUtils
 	/// </summary>
 	public static Message PayloadToMessage(byte[] payload)
 	{
-		string json = Encoding.UTF8.GetString(payload);
-		Message? message = JsonSerializer.Deserialize<Message>(json);
+		var json = Encoding.UTF8.GetString(payload);
+		var message = JsonSerializer.Deserialize<Message>(json);
 
 		return message!;
 	}
@@ -41,13 +43,13 @@ public class MessageUtils
 	/// </summary>
 	public static async Task<byte[]> ReadBytesAsync(NetworkStream stream, int length, CancellationToken token)
 	{
-		byte[] buffer = new byte[length];
-		int bytesRead = 0;
+		var buffer = new byte[length];
+		var bytesRead = 0;
 
 		// vvv looping since we might not get everything in one call
 		while (bytesRead < length)
 		{
-			int read = await stream.ReadAsync(
+			var read = await stream.ReadAsync(
 				buffer.AsMemory(bytesRead, length - bytesRead),
 				token);
 
@@ -69,8 +71,6 @@ public class MessageUtils
 	{
 		return BitConverter.ToInt32(lengthBytes, 0);
 	}
-
-	private const int MEGABYTE_LENGTH = 1048576;
 
 	/// <summary>
 	///     Checks if the inputted value is valid for a message length.

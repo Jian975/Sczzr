@@ -6,6 +6,7 @@
 //
 
 //using System.Runtime.Intrinsics.Arm;
+
 using System.Security.Cryptography;
 using System.Text;
 
@@ -80,10 +81,10 @@ public class AesEncryption
 		aes.GenerateIV();
 
 		var aesEncryptor = aes.CreateEncryptor();
-		byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
-		byte[] cipherBytes = aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+		var plainBytes = Encoding.UTF8.GetBytes(plaintext);
+		var cipherBytes = aesEncryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
 
-		byte[] resultArray = new byte[aes.IV.Length + cipherBytes.Length];
+		var resultArray = new byte[aes.IV.Length + cipherBytes.Length];
 		Buffer.BlockCopy(aes.IV, 0, resultArray, 0, aes.IV.Length);
 		Buffer.BlockCopy(cipherBytes, 0, resultArray, aes.IV.Length, cipherBytes.Length);
 		return resultArray;
@@ -115,18 +116,18 @@ public class AesEncryption
 		aes.Mode = CipherMode.CBC;
 
 		//need local variable for IV instead of writing to aes.IV
-		byte[] iv = new byte[16];
+		var iv = new byte[16];
 		Buffer.BlockCopy(ciphertext, 0, iv, 0, iv.Length);
 		aes.IV = iv;
 
-		byte[] cypherBytes = new byte[ciphertext.Length - 16];
+		var cypherBytes = new byte[ciphertext.Length - 16];
 		Buffer.BlockCopy(ciphertext, 16, cypherBytes, 0, cypherBytes.Length);
 
 		var aesDecryptor = aes.CreateDecryptor();
 
-		byte[] plaintextBytes = aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
-		
-		string plaintext = Encoding.UTF8.GetString(plaintextBytes);
+		var plaintextBytes = aesDecryptor.TransformFinalBlock(cypherBytes, 0, cypherBytes.Length);
+
+		var plaintext = Encoding.UTF8.GetString(plaintextBytes);
 		return plaintext;
 		//throw new NotImplementedException("Implement Decrypt() - see TODO in comments above");
 	}

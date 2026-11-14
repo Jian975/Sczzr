@@ -21,42 +21,42 @@ internal class Program
 {
 	// TODO: Uncomment these and use them
 	private static Server? _server;
+
 	private static Client? _client;
 	// private static ConsoleUI? _ui;
 
 	private static ConsoleUI? _consoleUI;
 
-    //this wasn't in the original code, but I added it to make the peer discovery work:
-    private static PeerDiscovery? _peerDiscovery;
+	//this wasn't in the original code, but I added it to make the peer discovery work:
+	private static PeerDiscovery? _peerDiscovery;
 
 
-    private static async Task Main(string[] args)
+	private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
 		Console.WriteLine("============================");
 
 		// TODO: Create your Server, Client, and ConsoleUI instances
-		
+
 		_server = new Server();
 		_client = new Client();
 		_consoleUI = new ConsoleUI();
 		_peerDiscovery = new PeerDiscovery();
 
 
-        // TODO: Subscribe to events so you know when things happen.
-        // For example:
-        //   _server.OnClientConnected += (endpoint) => { ... };
-        //   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
-        //   _client.OnMessageReceived += (message) => { /* display it */ };
-        _server!.OnClientConnected += (endpoint) =>
+		// TODO: Subscribe to events so you know when things happen.
+		// For example:
+		//   _server.OnClientConnected += (endpoint) => { ... };
+		//   _server.OnMessageReceived += (endpoint, message) => { /* relay it */ };
+		//   _client.OnMessageReceived += (message) => { /* display it */ };
+		_server!.OnClientConnected += endpoint => { _consoleUI.DisplaySystem($"Client connected: {endpoint}"); };
+		_server!.OnClientDisconnected += endpoint =>
 		{
-			_consoleUI.DisplaySystem($"Client connected: {endpoint}");
-        };
-		_server!.OnClientDisconnected += (endpoint) => {
 			_consoleUI.DisplaySystem($"Client disconnected: {endpoint}");
 			_server!.RemoveUsername(endpoint);
-			};
-		_server!.OnMessageReceived += (endpoint, message) => {
+		};
+		_server!.OnMessageReceived += (endpoint, message) =>
+		{
 			_consoleUI.DisplayMessage(message);
 			if (message.Type == MessageType.KeyExchange)
 			{
@@ -66,14 +66,17 @@ internal class Program
 				_server!.AddUsername(message.Sender, endpoint);
 				// Broadcast the list of public keys to all clients
 				_server!.BroadcastPublicKeys();
-			} else if (message.Type == MessageType.SessionKey)
+			}
+			else if (message.Type == MessageType.SessionKey)
 			{
 				//Forward the session key to the intended recipient
-				if (message.TargetPeerId == null || message.TargetPeerId == "" || _server!.GetEndpointByUsername(message.TargetPeerId!) == null)
+				if (message.TargetPeerId == null || message.TargetPeerId == "" ||
+				    _server!.GetEndpointByUsername(message.TargetPeerId!) == null)
 				{
 					_consoleUI.DisplaySystem($"SessionKey message TargetPeerId missing or unknown: {message}");
 					return;
 				}
+
 				_server!.SendTo(_server!.GetEndpointByUsername(message.TargetPeerId!)!, message);
 			}
 			else if (message.Type == MessageType.Instruction)
@@ -112,7 +115,6 @@ internal class Program
 							Timestamp = DateTime.Now,
 							RoomName = message.RoomName,
 							Request = "list room members"
-
 						};
 						_server!.SendTo(endpoint, memberListMessage);
 						break;
@@ -136,14 +138,15 @@ internal class Program
 			else if (message.Type == MessageType.Text && !string.IsNullOrEmpty(message.TargetPeerId))
 			{
 				if (!string.IsNullOrEmpty(message.RoomName) &&
-					(!_server!.IsRoomMember(message.Sender, message.RoomName) ||
-					 !_server.IsRoomMember(message.TargetPeerId, message.RoomName)))
+				    (!_server!.IsRoomMember(message.Sender, message.RoomName) ||
+				     !_server.IsRoomMember(message.TargetPeerId, message.RoomName)))
 				{
-					_consoleUI.DisplaySystem($"Rejected room message from {message.Sender} to {message.TargetPeerId}: not a room member");
+					_consoleUI.DisplaySystem(
+						$"Rejected room message from {message.Sender} to {message.TargetPeerId}: not a room member");
 					return;
 				}
 
-				string? recipientEndpoint = _server!.GetEndpointByUsername(message.TargetPeerId);
+				var recipientEndpoint = _server!.GetEndpointByUsername(message.TargetPeerId);
 				if (recipientEndpoint != null)
 				{
 					_server.SendTo(recipientEndpoint, message);
@@ -153,10 +156,10 @@ internal class Program
 			{
 				_server!.Broadcast(message);
 			}
-        };
-		_client!.OnConnected += (endpoint) => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
-		_client!.OnDisconnected += (endpoint) => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
-		_client!.OnMessageReceived += (message) => _consoleUI.DisplayMessage(message);
+		};
+		_client!.OnConnected += endpoint => _consoleUI.DisplaySystem($"Connected to server: {endpoint}");
+		_client!.OnDisconnected += endpoint => _consoleUI.DisplaySystem($"Disconnected from server: {endpoint}");
+		_client!.OnMessageReceived += message => _consoleUI.DisplayMessage(message);
 		// In Sprint 1, the server is a pure relay: when it receives a message,
 		// broadcast it to every connected client with Broadcast(message). Starting
 		// in Sprint 2 (chat rooms) and Sprint 3 (direct peer messages), you won't
@@ -190,8 +193,8 @@ internal class Program
 			{
 				continue;
 			}
-			
-			CommandResult inputCmd = _consoleUI.ParseCommand(input);
+
+			var inputCmd = _consoleUI.ParseCommand(input);
 			if (inputCmd.IsCommand)
 			{
 				switch (inputCmd.CommandType)
@@ -205,7 +208,7 @@ internal class Program
 						{
 							await HandleConnect(inputCmd.Args!);
 						}
-						
+
 						break;
 					case CommandType.Listen:
 						if (_server!.IsListening)
@@ -216,16 +219,21 @@ internal class Program
 						{
 							HandleListen(inputCmd.Args!);
 						}
+
 						break;
 					case CommandType.Peers:
 						HandlePeers();
 						break;
 					case CommandType.Username:
-						if (inputCmd.Args![0] == "Server") {
+						if (inputCmd.Args![0] == "Server")
+						{
 							Console.WriteLine("Username cannot be 'Server'.");
-						} else {
+						}
+						else
+						{
 							_client!._username = inputCmd.Args![0].Trim();
 						}
+
 						break;
 					case CommandType.Quit:
 						running = false;
@@ -235,16 +243,16 @@ internal class Program
 						break;
 					case CommandType.Create:
 						CreateRoom(inputCmd.Args![0]);
-                        break;
+						break;
 					case CommandType.Join:
 						AddToRoom(inputCmd.Args![0], _client.getAddress());
-                        break;
+						break;
 					case CommandType.Leave:
-						RemoveFromRoom(inputCmd.Args![0], _client.getAddress());				// Handle leave command
+						RemoveFromRoom(inputCmd.Args![0], _client.getAddress()); // Handle leave command
 						break;
 					case CommandType.Rooms:
-                        ListRooms();
-                        break;
+						ListRooms();
+						break;
 					case CommandType.RoomMembers:
 						ListMembers(inputCmd.Args![0]);
 						break;
@@ -252,13 +260,14 @@ internal class Program
 						if (_client!.IsConnected)
 						{
 							SendToRoom(inputCmd.Args![0], inputCmd.Args![1]);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
-                        }
-                        break;
-                    case CommandType.Unknown:
+						}
+						else
+						{
+							Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
+						}
+
+						break;
+					case CommandType.Unknown:
 					default:
 						Console.WriteLine("Unknown command. Type /help for available commands.");
 						break;
@@ -267,10 +276,15 @@ internal class Program
 			else
 			{
 				// send as a chat message
-				if (_client!.IsConnected) {
-					Broadcast(new Message { Content = input, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now });
-
-				} else {
+				if (_client!.IsConnected)
+				{
+					Broadcast(new Message
+					{
+						Content = input, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now
+					});
+				}
+				else
+				{
 					Console.WriteLine("Not connected to a server. Use /connect <ip> <port> to connect.");
 				}
 			}
@@ -278,12 +292,16 @@ internal class Program
 		}
 
 		// Clean shutdown - stop the server, disconnect the client
-		if (_server!.IsListening) {
+		if (_server!.IsListening)
+		{
 			_server.Stop();
 		}
-		if (_client!.IsConnected) {
+
+		if (_client!.IsConnected)
+		{
 			_client.Disconnect();
 		}
+
 		_consoleUI.DisplaySystem("Goodbye!");
 	}
 
@@ -299,24 +317,25 @@ internal class Program
 
 	private static void HandlePeers()
 	{
-		List<PeerInfo> peers = _peerDiscovery!.GetKnownPeers().ToList();
-		
+		var peers = _peerDiscovery!.GetKnownPeers().ToList();
+
 		if (peers.Count == 0)
 		{
 			Console.WriteLine("No known peers.");
 		}
 		else
 		{
-            foreach (var peer in peers)
-            {
-                Console.WriteLine(peer.Id);
-            }
-        }
-    }			
+			foreach (var peer in peers)
+			{
+				Console.WriteLine(peer.Id);
+			}
+		}
+	}
 
 	private static void SendMessage(string text)
 	{
-		_client!.Send(new Message { Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now, });
+		_client!.Send(new Message
+			{Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now});
 	}
 
 	//added in sprint 2:
@@ -324,38 +343,63 @@ internal class Program
 	//create
 	private static void CreateRoom(string roomName)
 	{
-		_client!.Send(new Message { Content = "create", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
-    }
+		_client!.Send(new Message
+		{
+			Content = "create", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now,
+			RoomName = roomName
+		});
+	}
 
 	//join
 	private static void AddToRoom(string roomName, string endpoint)
 	{
-		_client!.Send(new Message { Content = "join", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
-    }
+		_client!.Send(new Message
+		{
+			Content = "join", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now,
+			RoomName = roomName
+		});
+	}
 
 	//leave
 	private static void RemoveFromRoom(string roomName, string endpoint)
 	{
-		_client!.Send(new Message { Content = "leave", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
-    }
+		_client!.Send(new Message
+		{
+			Content = "leave", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now,
+			RoomName = roomName
+		});
+	}
 
 	//rooms
 	private static void ListRooms()
 	{
-		_client!.Send(new Message { Content = "list rooms", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now });
+		_client!.Send(new Message
+		{
+			Content = "list rooms", Sender = _client!._username, Type = MessageType.Instruction,
+			Timestamp = DateTime.Now
+		});
 	}
 
 	//members
 	private static void ListMembers(string roomName)
 	{
-		_client!.Send(new Message { Content = "list room members", Sender = _client!._username, Type = MessageType.Instruction, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.Send(new Message
+		{
+			Content = "list room members", Sender = _client!._username, Type = MessageType.Instruction,
+			Timestamp = DateTime.Now, RoomName = roomName
+		});
 	}
 
 	//msg
 	//TODO: set security fields
-    private static void SendToRoom(string roomName, string text)
+	private static void SendToRoom(string roomName, string text)
 	{
-		_client!.SendToRoom(roomName, new Message { Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now, RoomName = roomName });
+		_client!.SendToRoom(roomName,
+			new Message
+			{
+				Content = text, Sender = _client!._username, Type = MessageType.Text, Timestamp = DateTime.Now,
+				RoomName = roomName
+			});
 	}
 
 	private static void Broadcast(Message message)

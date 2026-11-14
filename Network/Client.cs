@@ -22,74 +22,71 @@ namespace SecureMessenger.Network;
 /// </summary>
 public class Client
 {
+	private AesEncryption? _aesEncryption;
 	private CancellationTokenSource? _cancellationTokenSource;
 	private TcpClient? _client;
-	private string _serverEndpoint = "";
-	private NetworkStream? _stream;
-	public bool IsConnected => _client?.Connected ?? false;
-	public event Action<string>? OnConnected;
-	public event Action<string>? OnDisconnected;
-	public event Action<Message>? OnMessageReceived;
 
 	private KeyExchange? _keyExchange;
 	private MessageSigner? _messageSigner;
 
-	private byte[]? _publicKey;
-
-	private RSA? _rsa;
-
-	private ConcurrentDictionary<string, byte[]>? _peerPublicKeys = new ConcurrentDictionary<string, byte[]>();
-
-	private AesEncryption? _aesEncryption;
+	private readonly ConcurrentDictionary<string, byte[]>? _peerPublicKeys = new();
 
 	private byte[]? _privateKey;
 
-	private ConcurrentDictionary<string, byte[]>? _sessionKeys = new ConcurrentDictionary<string, byte[]>(); //peer private aes keys
+	private byte[]? _publicKey;
+	private bool _publicKeysReceived = false;
 
-    public string _username { get; set; } = "User";
+	private readonly ConcurrentDictionary<string, string[]>? _roomMembers = new();
 
-	private ConcurrentDictionary<string, string[]>? _roomMembers = new ConcurrentDictionary<string, string[]>();
+	private RSA? _rsa;
+	private string _serverEndpoint = "";
 
-	private Boolean _userListReceived = false;
-	private Boolean _publicKeysReceived = false;
+	private readonly ConcurrentDictionary<string, byte[]>? _sessionKeys = new(); //peer private aes keys
+	private NetworkStream? _stream;
 
-	private Object lockObject = new Object();
+	private bool _userListReceived;
 
-    /// <summary> 
-    ///     If the connection is successful, it initializes the network stream, 
-    ///     saves the server endpoint, fires the OnConnected event, 
-    ///     and starts receiving messages in a background task. 
-    ///     If any exceptions occur during the connection process, 
-    ///     they are caught and logged, and the method returns false.
-    ///     @param host The server's hostname or IP address.
-    ///     @param port The server's port number.
-    ///     @return True if the connection is successful, false otherwise.
-    ///     
-    /// td:
-    ///     Create a CancellationTokenSource and a new TcpClient, then
-    ///     await ConnectAsync(host, port). Grab the NetworkStream, save the
-    ///     endpoint string, fire OnConnected, and start ReceiveAsync on a
-    ///     background Task. Return true.
-    ///     If anything throws, log the error and return false.
-    /// 
-	/// TODO: add key exchange (call to KeyExchange) for rsa public keys
-    /// </summary>
-    public async Task<bool> ConnectAsync(string host, int port)
+	private object lockObject = new();
+	public bool IsConnected => _client?.Connected ?? false;
+
+	public string _username { get; set; } = "User";
+	public event Action<string>? OnConnected;
+	public event Action<string>? OnDisconnected;
+	public event Action<Message>? OnMessageReceived;
+
+	/// <summary>
+	///     If the connection is successful, it initializes the network stream,
+	///     saves the server endpoint, fires the OnConnected event,
+	///     and starts receiving messages in a background task.
+	///     If any exceptions occur during the connection process,
+	///     they are caught and logged, and the method returns false.
+	///     @param host The server's hostname or IP address.
+	///     @param port The server's port number.
+	///     @return True if the connection is successful, false otherwise.
+	///     td:
+	///     Create a CancellationTokenSource and a new TcpClient, then
+	///     await ConnectAsync(host, port). Grab the NetworkStream, save the
+	///     endpoint string, fire OnConnected, and start ReceiveAsync on a
+	///     background Task. Return true.
+	///     If anything throws, log the error and return false.
+	///     TODO: add key exchange (call to KeyExchange) for rsa public keys
+	/// </summary>
+	public async Task<bool> ConnectAsync(string host, int port)
 	{
 		try
 		{
-            // Create a CancellationTokenSource and a new TcpClient
-            _cancellationTokenSource = new CancellationTokenSource(); //TimeSpan.FromSeconds(5)
-            _client = new TcpClient();
+			// Create a CancellationTokenSource and a new TcpClient
+			_cancellationTokenSource = new CancellationTokenSource(); //TimeSpan.FromSeconds(5)
+			_client = new TcpClient();
 
-            // Connect to the server
-            await _client.ConnectAsync(host, port, _cancellationTokenSource.Token);
+			// Connect to the server
+			await _client.ConnectAsync(host, port, _cancellationTokenSource.Token);
 
-            // Grab the NetworkStream
-            _stream = _client.GetStream();
+			// Grab the NetworkStream
+			_stream = _client.GetStream();
 
-            // Save the endpoint string
-            _serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
+			// Save the endpoint string
+			_serverEndpoint = _client.Client.RemoteEndPoint?.ToString() ?? $"{host}:{port}";
 
 			_keyExchange = new KeyExchange();
 			_publicKey = _keyExchange.GetPublicKey();
@@ -105,28 +102,27 @@ public class Client
 			//todo: uncomment these lines once encryption doesn't throw an not implemented err
 			//_rsaEncryption = new RsaEncryption();
 			//_messageSigner = new MessageSigner(RSA.Create()); //TODO: figure out how to actually instantiate
-            // Fire the OnConnected event
-            OnConnected?.Invoke(_serverEndpoint);
+			// Fire the OnConnected event
+			OnConnected?.Invoke(_serverEndpoint);
 
 			//send public key to server
-			Message keyExchangeMessage = new Message()
+			var keyExchangeMessage = new Message
 			{
 				Sender = _username,
 				PublicKey = _publicKey,
 				Type = MessageType.KeyExchange,
 				Timestamp = DateTime.Now
 			};
-			
+
 			Send(keyExchangeMessage);
 
-            // Start ReceiveAsync on a background Task
-            _ = Task.Run(() => ReceiveAsync());
-            
-			return true;
+			// Start ReceiveAsync on a background Task
+			_ = Task.Run(() => ReceiveAsync());
 
-        }
-		catch(SocketException) 
-		{ 
+			return true;
+		}
+		catch (SocketException)
+		{
 			Console.WriteLine("Could not reach server");
 			return false;
 		}
@@ -134,14 +130,13 @@ public class Client
 		{
 			Console.WriteLine("Connection to server lost");
 			return false;
-        }
+		}
 		catch (Exception ex)
 		{
 			Console.WriteLine(ex.Message);
 			return false;
-        }
-
-    }
+		}
+	}
 
 	/// <summary>
 	///     Background receive loop. Same length-prefix framing as Server:
@@ -158,30 +153,30 @@ public class Client
 	/// </summary>
 	private async Task ReceiveAsync()
 	{
-		CancellationToken token = _cancellationTokenSource!.Token;
-		byte[] buffer = new byte[4];
+		var token = _cancellationTokenSource!.Token;
+		var buffer = new byte[4];
 
 		var responseBytes = new List<byte>();
 		try
 		{
 			while (IsConnected && !token.IsCancellationRequested)
 			{
-                // Read the 4-byte length prefix
-                byte[] prefix = await MessageUtils.ReadBytesAsync(_stream!, 4, token);
+				// Read the 4-byte length prefix
+				var prefix = await MessageUtils.ReadBytesAsync(_stream!, 4, token);
 
-                // Convert the length bytes to an integer
-                int length = MessageUtils.LengthBytesToLength(prefix);
+				// Convert the length bytes to an integer
+				var length = MessageUtils.LengthBytesToLength(prefix);
 
-                // Validate the length (> 0 and < 1MB)
-                if (!MessageUtils.IsValidMessageLength(length))
+				// Validate the length (> 0 and < 1MB)
+				if (!MessageUtils.IsValidMessageLength(length))
 				{
-                    break;
+					break;
 				}
 
-				byte[] payload = await MessageUtils.ReadBytesAsync(_stream!, length, token);
-				
+				var payload = await MessageUtils.ReadBytesAsync(_stream!, length, token);
+
 				// Deserialize the JSON into a Message
-				Message message = MessageUtils.PayloadToMessage(payload);
+				var message = MessageUtils.PayloadToMessage(payload);
 
 				if (message.Type == MessageType.KeyExchange)
 				{
@@ -191,45 +186,51 @@ public class Client
 					}
 					else
 					{
-						string content = message.Content;
-						string[] pairs = content.Split(',');
+						var content = message.Content;
+						var pairs = content.Split(',');
 						foreach (var pair in pairs)
 						{
 							var keyValue = pair.Split(':');
 							if (keyValue.Length == 2)
 							{
-								string username = keyValue[0].Trim();
-								string publicKey = keyValue[1].Trim();
+								var username = keyValue[0].Trim();
+								var publicKey = keyValue[1].Trim();
 								// Process each key-value pair as needed
 								_ = _peerPublicKeys!.TryAdd(username, Convert.FromBase64String(publicKey));
 							}
 						}
 					}
-				}else if (message.Type == MessageType.SessionKey)
+				}
+				else if (message.Type == MessageType.SessionKey)
 				{
-					string username = message.Sender;
-					byte[] encryptedSessionKey = message.EncryptedContent!;
-					
+					var username = message.Sender;
+					var encryptedSessionKey = message.EncryptedContent!;
+
 					ReceiveEncryptedSessionKey(username, encryptedSessionKey);
 					/**
 					_ = _sessionKeys!.TryAdd(username, _keyExchange!.DecryptSessionKey(encryptedSessionKey));
 					**/
-				}else if(message.Sender == "Server" && message.Request == "list room members")
+				}
+				else if (message.Sender == "Server" && message.Request == "list room members")
 				{
-					string roomName = message.RoomName!;
-					string[] members = message.Content.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+					var roomName = message.RoomName!;
+					var members = message.Content.Split(',',
+						StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 					_roomMembers![roomName] = members;
 					_userListReceived = true;
-				} else if (message.Sender == "Server" && message.Request == "list all users")
+				}
+				else if (message.Sender == "Server" && message.Request == "list all users")
 				{
-					string[] members = message.Content.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+					var members = message.Content.Split(',',
+						StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 					_roomMembers!["all"] = members;
 					_userListReceived = true;
 				}
-				else if(message.Type == MessageType.Text && message.EncryptedContent != null)
+				else if (message.Type == MessageType.Text && message.EncryptedContent != null)
 				{
 					// Handle text message
-					bool signatureValid = _messageSigner!.VerifyData(message.EncryptedContent, message.Signature!, _peerPublicKeys![message.Sender]);
+					var signatureValid = _messageSigner!.VerifyData(message.EncryptedContent, message.Signature!,
+						_peerPublicKeys![message.Sender]);
 					if (!signatureValid)
 					{
 						Console.WriteLine("Invalid signature for text message from " + message.Sender);
@@ -237,15 +238,16 @@ public class Client
 					}
 					else
 					{
-						if (!_sessionKeys!.TryGetValue(message.Sender, out byte[]? sessionKey))
+						if (!_sessionKeys!.TryGetValue(message.Sender, out var sessionKey))
 						{
 							Console.WriteLine("Session key not found for " + message.Sender);
 							continue;
 						}
-						_aesEncryption = new AesEncryption(sessionKey);
-						string decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
 
-						Message decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedContent)!;
+						_aesEncryption = new AesEncryption(sessionKey);
+						var decryptedContent = _aesEncryption.Decrypt(message.EncryptedContent!);
+
+						var decryptedMessage = JsonSerializer.Deserialize<Message>(decryptedContent)!;
 
 						OnMessageReceived?.Invoke(decryptedMessage);
 					}
@@ -253,30 +255,27 @@ public class Client
 				else
 				{
 					// Fire the OnMessageReceived event
-                	OnMessageReceived?.Invoke(message);
+					OnMessageReceived?.Invoke(message);
 				}
-				
-                
-            }
+			}
 		}
 		catch (OperationCanceledException)
 		{
-            // Normal shutdown
-        }
-        catch (IOException)
-        {
-            Console.WriteLine("Connection to server lost");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+			// Normal shutdown
+		}
+		catch (IOException)
+		{
+			Console.WriteLine("Connection to server lost");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex.Message);
+		}
 		finally
 		{
-            //fire the OnDisconnected event
-            OnDisconnected?.Invoke(_serverEndpoint);
-        }
-        
+			//fire the OnDisconnected event
+			OnDisconnected?.Invoke(_serverEndpoint);
+		}
 	}
 
 
@@ -291,11 +290,11 @@ public class Client
 
 		//create encrypted session key from peer public key
 		_keyExchange!.ReceivePublicKey(peerPublicKey);
-		byte[] encryptedSessionKey = _keyExchange!.CreateEncryptedSessionKey(); //placeholder
-		
+		var encryptedSessionKey = _keyExchange!.CreateEncryptedSessionKey(); //placeholder
+
 		//store this peer's symmetric session key (non-encrypted)
 		_sessionKeys!.TryAdd(username, _keyExchange!.SessionKey!);
-		Message sessionKeyMessage = new Message
+		var sessionKeyMessage = new Message
 		{
 			Type = MessageType.SessionKey,
 			Sender = _username,
@@ -336,18 +335,18 @@ public class Client
 				// Convert message to bytes, and build the 4-byte length prefix
 				var (prefix, payload) = MessageUtils.MessageToBytes(message);
 
-                // Write the length prefix and payload to the stream
-                _stream!.Write(prefix.Concat(payload).ToArray(), 0, prefix.Length + payload.Length);
+				// Write the length prefix and payload to the stream
+				_stream!.Write(prefix.Concat(payload).ToArray(), 0, prefix.Length + payload.Length);
 			}
-            catch (IOException)
-            {
-                Console.WriteLine("Connection to server lost");
-            }
+			catch (IOException)
+			{
+				Console.WriteLine("Connection to server lost");
+			}
 			catch (NullReferenceException)
-            {
-                Console.WriteLine("Null reference occurred while sending message");
-            }
-            catch (Exception ex)
+			{
+				Console.WriteLine("Null reference occurred while sending message");
+			}
+			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
 			}
@@ -360,7 +359,7 @@ public class Client
 		{
 			try
 			{
-				if(!_sessionKeys!.ContainsKey(username))
+				if (!_sessionKeys!.ContainsKey(username))
 				{
 					SendEncryptedSessionKey(username);
 				}
@@ -373,12 +372,12 @@ public class Client
 				}
 
 				_aesEncryption = new AesEncryption(sessionKey);
-				
-				var (prefix, payload) = MessageUtils.MessageToBytes(message);	
-				byte[] encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
-				byte[] signature = _messageSigner!.SignData(encryptedPayload);
 
-				Message encryptedMessage = new Message()
+				var (prefix, payload) = MessageUtils.MessageToBytes(message);
+				var encryptedPayload = _aesEncryption!.Encrypt(Encoding.UTF8.GetString(payload));
+				var signature = _messageSigner!.SignData(encryptedPayload);
+
+				var encryptedMessage = new Message
 				{
 					Type = MessageType.Text,
 					Sender = _username,
@@ -409,7 +408,7 @@ public class Client
 	{
 		if (IsConnected)
 		{
-			Message getUserListMessage = new Message
+			var getUserListMessage = new Message
 			{
 				Type = MessageType.Instruction,
 				Content = "list all users",
@@ -423,20 +422,20 @@ public class Client
 				await Task.Delay(10);
 			}
 
-			string[] usernames = _roomMembers!["all"];
+			var usernames = _roomMembers!["all"];
 
-			foreach (string user in usernames)
+			foreach (var user in usernames)
 			{
 				SendTo(user, message);
 			}
 		}
 	}
+
 	public async Task SendToRoom(string roomName, Message message)
 	{
 		if (IsConnected)
 		{
-			
-			Message getRoomMembersMessage = new Message
+			var getRoomMembersMessage = new Message
 			{
 				Type = MessageType.Instruction,
 				Content = "list room members",
@@ -445,7 +444,7 @@ public class Client
 			};
 			_userListReceived = false;
 			message.RoomName = roomName;
-			
+
 			Send(getRoomMembersMessage);
 
 			while (!_userListReceived)
@@ -453,9 +452,9 @@ public class Client
 				await Task.Delay(10);
 			}
 
-			string[] usernames = _roomMembers![roomName];
+			var usernames = _roomMembers![roomName];
 
-			foreach (string user in usernames)
+			foreach (var user in usernames)
 			{
 				SendTo(user, message);
 			}
@@ -468,17 +467,17 @@ public class Client
 		return _client?.Client.RemoteEndPoint?.ToString() ?? string.Empty;
 	}
 
-    /// <summary>
-    ///     Disconnect from the server.
-    ///     td Cancel the token, close the stream, close the client.
-    /// </summary>
-    public void Disconnect()
+	/// <summary>
+	///     Disconnect from the server.
+	///     td Cancel the token, close the stream, close the client.
+	/// </summary>
+	public void Disconnect()
 	{
 		_cancellationTokenSource?.Cancel();
 		_cancellationTokenSource = null;
 		_stream?.Close();
 		_stream = null;
-        _client?.Close();
+		_client?.Close();
 		_client = null;
-    }
+	}
 }

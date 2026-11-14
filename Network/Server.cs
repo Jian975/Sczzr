@@ -24,24 +24,24 @@ public class Server
 	private CancellationTokenSource? _cancellationTokenSource;
 	private TcpListener? _listener;
 
+	// <username, public key bytes>
+	private readonly ConcurrentDictionary<string, byte[]> _publicKeys = new();
+
+	//TODO: modify this if needed (wasn't provided)
+	//roomname, client usernames
+	private readonly ConcurrentDictionary<string, HashSet<string>> _rooms = new();
+
+	// <username, endpoint>
+	private readonly ConcurrentDictionary<string, string> _usernamesToEndpoints = new();
+
 	public int Port { get; private set; }
 	public bool IsListening { get; private set; }
 
-    //TODO: modify this if needed (wasn't provided)
-    //roomname, client usernames
-    private ConcurrentDictionary<string, HashSet<string>> _rooms = new();
 
-	// <username, public key bytes>
-	private ConcurrentDictionary<string, byte[]> _publicKeys = new();
-
-	// <username, endpoint>
-	private ConcurrentDictionary<string, string> _usernamesToEndpoints = new();
-	
-
-    /// <summary>
-    ///     How many clients are currently connected.
-    /// </summary>
-    public int ClientCount
+	/// <summary>
+	///     How many clients are currently connected.
+	/// </summary>
+	public int ClientCount
 	{
 		get
 		{
@@ -82,13 +82,13 @@ public class Server
 	/// </summary>
 	private async Task AcceptClientsAsync()
 	{
-		CancellationToken token = _cancellationTokenSource!.Token;
+		var token = _cancellationTokenSource!.Token;
 		while (!token.IsCancellationRequested) // loops until canceled to connect any new clients
 		{
 			try
 			{
-				TcpClient client = await _listener!.AcceptTcpClientAsync(token);
-				string endpoint = client.Client.RemoteEndPoint?.ToString() ?? ""; // gets the endpoint, or "" if null
+				var client = await _listener!.AcceptTcpClientAsync(token);
+				var endpoint = client.Client.RemoteEndPoint?.ToString() ?? ""; // gets the endpoint, or "" if null
 
 				// vvv saving the new client in our clients dict
 				lock (_clientsLock)
@@ -116,16 +116,16 @@ public class Server
 	/// </summary>
 	private async Task ReceiveFromClientAsync(TcpClient client, string endpoint)
 	{
-		CancellationToken token = _cancellationTokenSource!.Token;
+		var token = _cancellationTokenSource!.Token;
 
 		try
 		{
-			NetworkStream stream = client.GetStream();
+			var stream = client.GetStream();
 
 			while (true)
 			{
-				byte[] lengthBytes = await MessageUtils.ReadBytesAsync(stream, 4, token); // reading length bytes
-				int length = MessageUtils.LengthBytesToLength(lengthBytes); // converting length bytes to an integer
+				var lengthBytes = await MessageUtils.ReadBytesAsync(stream, 4, token); // reading length bytes
+				var length = MessageUtils.LengthBytesToLength(lengthBytes); // converting length bytes to an integer
 
 				// vvv checking that the bytes are within our size assumptions
 				if (!MessageUtils.IsValidMessageLength(length))
@@ -134,8 +134,8 @@ public class Server
 					return;
 				}
 
-				byte[] payload = await MessageUtils.ReadBytesAsync(stream, length, token); // reading the payload bytes
-				Message message = MessageUtils.PayloadToMessage(payload);
+				var payload = await MessageUtils.ReadBytesAsync(stream, length, token); // reading the payload bytes
+				var message = MessageUtils.PayloadToMessage(payload);
 
 				OnMessageReceived?.Invoke(endpoint, message); // fire the event
 			}
@@ -173,7 +173,7 @@ public class Server
 	/// </summary>
 	public void Broadcast(Message message)
 	{
-		(byte[] lengthBytes, byte[] payload) = MessageUtils.MessageToBytes(message);
+		var (lengthBytes, payload) = MessageUtils.MessageToBytes(message);
 
 		// vvv copying the clients so that we don't need to hold the lock while sending messages
 		TcpClient[] clients;
@@ -209,11 +209,10 @@ public class Server
 			}
 		}
 
-		(byte[] lengthBytes, byte[] payload) = MessageUtils.MessageToBytes(message);
+		var (lengthBytes, payload) = MessageUtils.MessageToBytes(message);
 		AttemptToSendMessage(client, lengthBytes, payload);
-		
 	}
-	
+
 	/// <summary>
 	///     Sends the inputted message bytes to the client, or prints an error on failure.
 	/// </summary>
@@ -221,7 +220,7 @@ public class Server
 	{
 		try
 		{
-			NetworkStream stream = client.GetStream();
+			var stream = client.GetStream();
 
 			// vvv writing all bytes to the client
 			stream.Write(lengthBytes, 0, lengthBytes.Length);
@@ -239,42 +238,47 @@ public class Server
 	public void Stop()
 	{
 		_cancellationTokenSource.Cancel();
-		
+
 		_listener.Stop();
-		
+
 		IsListening = false;
-		
+
 		lock (_clientsLock)
 		{
 			foreach (var client in _clients.Values)
 			{
 				client.Close();
 			}
-			
+
 			_clients.Clear();
 		}
 	}
 
-    //TODO: implement stubs for methods needed by program.cs for sprint 2;
+	//TODO: implement stubs for methods needed by program.cs for sprint 2;
 	//first 4 are just manipulating/printing from dictionary, while last either just
 	//loops over SendTo or mostly copies its code
-    public void CreateRoom(string roomName) {
+	public void CreateRoom(string roomName)
+	{
 		if (!_rooms.ContainsKey(roomName))
 		{
 			//todo: print err msg if this fails
 			_rooms.TryAdd(roomName, new HashSet<string>());
 		}
 	}
-    public void AddToRoom(string username, string roomName) { 
+
+	public void AddToRoom(string username, string roomName)
+	{
 		CreateRoom(roomName); //only creates if it doesn't exist
 		_rooms[roomName].Add(username);
-		return; 
 	}
-	public void RemoveFromRoom(string username, string roomName) { 
+
+	public void RemoveFromRoom(string username, string roomName)
+	{
 		_rooms[roomName].Remove(username);
-		return; 
 	}
-    public List<string> ListRooms() {
+
+	public List<string> ListRooms()
+	{
 		return _rooms.Keys.ToList();
 	}
 
@@ -303,18 +307,19 @@ public class Server
 	// Message format: username:base64(publicKey),username:base64(publicKey),...
 	public void BroadcastPublicKeys()
 	{
-		string publicKeyString = "";
+		var publicKeyString = "";
 		foreach (var kvp in _publicKeys)
 		{
 			publicKeyString += kvp.Key + ":" + Convert.ToBase64String(kvp.Value) + ",";
 		}
+
 		var message = new Message
-			{
-				Sender = "Server",
-				Content = publicKeyString.TrimEnd(','), // Remove the trailing comma
-				Type = MessageType.KeyExchange,
-				Timestamp = DateTime.Now,
-			};
+		{
+			Sender = "Server",
+			Content = publicKeyString.TrimEnd(','), // Remove the trailing comma
+			Type = MessageType.KeyExchange,
+			Timestamp = DateTime.Now
+		};
 		Broadcast(message);
 	}
 
@@ -338,6 +343,7 @@ public class Server
 		{
 			return endpoint;
 		}
+
 		return null;
 	}
 }

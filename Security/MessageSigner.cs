@@ -51,7 +51,9 @@ public class MessageSigner
 			using var rsa = RSA.Create();
 			rsa.ImportRSAPublicKey(publicKey, out _); // get public key
 
-			var isValid = rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1); // check if the data was tampered with
+			var isValid =
+				rsa.VerifyData(data, signature, HashAlgorithmName.SHA256,
+					RSASignaturePadding.Pkcs1); // check if the data was tampered with
 
 			if (!isValid)
 			{
