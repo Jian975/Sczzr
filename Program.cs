@@ -19,7 +19,6 @@ namespace SecureMessenger;
 
 internal class Program
 {
-	// TODO: Uncomment these and use them
 	private static Server? _server;
 
 	private static Client? _client;
@@ -27,10 +26,12 @@ internal class Program
 
 	private static ConsoleUI? _consoleUI;
 
-	//this wasn't in the original code, but I added it to make the peer discovery work:
+	// this wasn't in the original code, but I added it to make the peer discovery work:
 	private static PeerDiscovery? _peerDiscovery;
-
-
+	
+	/// <summary>
+	///     Main method. Handles startup, commands, and shutdown.
+	/// </summary>
 	private static async Task Main(string[] args)
 	{
 		Console.WriteLine("Secure Distributed Messenger");
@@ -305,20 +306,30 @@ internal class Program
 		_consoleUI.DisplaySystem("Goodbye!");
 	}
 
+	/// <summary>
+	///     Connects a new client.
+	/// </summary>
 	private static async Task HandleConnect(string[] args)
 	{
 		await _client!.ConnectAsync(args[0], int.Parse(args[1]));
 	}
 
+	/// <summary>
+	///     Connects a new server.
+	/// </summary>
 	private static void HandleListen(string[] args)
 	{
 		_server!.Start(int.Parse(args[0]));
 	}
 
+	/// <summary>
+	///     Gets and prints peers list.
+	/// </summary>
 	private static void HandlePeers()
 	{
-		var peers = _peerDiscovery!.GetKnownPeers().ToList();
+		var peers = _peerDiscovery!.GetKnownPeers().ToList(); // gets peers list
 
+		// vvv prints all peers, or a message if none exist
 		if (peers.Count == 0)
 		{
 			Console.WriteLine("No known peers.");
@@ -332,6 +343,9 @@ internal class Program
 		}
 	}
 
+	/// <summary>
+	///     Sends a message with the specified text.
+	/// </summary>
 	private static void SendMessage(string text)
 	{
 		_client!.Send(new Message
@@ -340,7 +354,9 @@ internal class Program
 
 	//added in sprint 2:
 
-	//create
+	/// <summary>
+	///     Creates a new chat room with a specific name.
+	/// </summary>
 	private static void CreateRoom(string roomName)
 	{
 		_client!.Send(new Message
@@ -350,7 +366,9 @@ internal class Program
 		});
 	}
 
-	//join
+	/// <summary>
+	///     Adds a new user to a chat room.
+	/// </summary>
 	private static void AddToRoom(string roomName, string endpoint)
 	{
 		_client!.Send(new Message
@@ -360,7 +378,9 @@ internal class Program
 		});
 	}
 
-	//leave
+	/// <summary>
+	///     Removes a user from a chat room.
+	/// </summary>
 	private static void RemoveFromRoom(string roomName, string endpoint)
 	{
 		_client!.Send(new Message
@@ -370,7 +390,9 @@ internal class Program
 		});
 	}
 
-	//rooms
+	/// <summary>
+	///     Lists all active chat rooms.
+	/// </summary>
 	private static void ListRooms()
 	{
 		_client!.Send(new Message
@@ -380,7 +402,9 @@ internal class Program
 		});
 	}
 
-	//members
+	/// <summary>
+	///     Lists all members in a chat room.
+	/// </summary>
 	private static void ListMembers(string roomName)
 	{
 		_client!.Send(new Message
@@ -390,8 +414,9 @@ internal class Program
 		});
 	}
 
-	//msg
-	//TODO: set security fields
+	/// <summary>
+	///     Sends a message to the specified room.
+	/// </summary>
 	private static void SendToRoom(string roomName, string text)
 	{
 		_client!.SendToRoom(roomName,
@@ -402,6 +427,9 @@ internal class Program
 			});
 	}
 
+	/// <summary>
+	///     Broadcasts a message to all clients.
+	/// </summary>
 	private static void Broadcast(Message message)
 	{
 		if (_client!.IsConnected)
