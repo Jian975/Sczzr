@@ -207,6 +207,7 @@ public class Client
 					var encryptedSessionKey = message.EncryptedContent!;
 
 					ReceiveEncryptedSessionKey(username, encryptedSessionKey);
+					_keyExchange!.Complete();
 					/**
 					_ = _sessionKeys!.TryAdd(username, _keyExchange!.DecryptSessionKey(encryptedSessionKey));
 					**/
