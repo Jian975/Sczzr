@@ -1,4 +1,4 @@
-// [Your Name Here]
+// [Athnena Ching]
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
@@ -81,7 +81,43 @@ public class ReconnectionPolicy
 	/// </summary>
 	public async Task<bool> TryReconnect(Peer peer)
 	{
-		throw new NotImplementedException("Implement TryReconnect() - see TODO in comments above");
+		int currentAttempt = GetAttemptCount(peer.Id);
+		while(currentAttempt < MaxAttempts)
+		{
+			currentAttempt++;
+			_attemptCount[peer.Id] = currentAttempt;
+			
+			Console.WriteLine($"Attempting to reconnect to {peer.Id} (Attempt {currentAttempt}/{MaxAttempts})");
+			
+			OnReconnectAttempt?.Invoke(peer.Id, currentAttempt);
+			
+			int delay = (int)Math.Min(InitialDelayMs * Math.Pow(2, currentAttempt-1), MaxDelayMs);
+			
+			try
+			{
+				await _client.ConnectAsync(peer.Address?.ToString() ?? "", peer.Port);
+				
+				Console.WriteLine($"Successfully reconnected to {peer.Id}");
+				
+				ResetAttempts(peer.Id);
+				
+				OnReconnectSuccess?.Invoke(peer.Id);
+				
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Reconnect attempt {currentAttempt + 1} failed for {peer.Id}: {ex.Message}. Retrying in {delay}ms...");
+				
+				await Task.Delay(delay);
+			}			
+		}
+		
+		Console.WriteLine($"Failed to reconnect to {peer.Id} after {MaxAttempts} attempts.");
+		
+		OnReconnectFailed?.Invoke(peer.Id);
+		
+		return false;
 	}
 
 	/// <summary>
@@ -92,7 +128,7 @@ public class ReconnectionPolicy
 	/// </summary>
 	public void ResetAttempts(string peerId)
 	{
-		throw new NotImplementedException("Implement ResetAttempts() - see TODO in comments above");
+		_attemptCount.TryRemove(peerId, out _);
 	}
 
 	/// <summary>
@@ -103,6 +139,6 @@ public class ReconnectionPolicy
 	/// </summary>
 	public int GetAttemptCount(string peerId)
 	{
-		throw new NotImplementedException("Implement GetAttemptCount() - see TODO in comments above");
+		return _attemptCount.TryGetValue(peerId, out int count) ? count : 0;
 	}
 }
