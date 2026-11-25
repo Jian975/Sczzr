@@ -1,4 +1,4 @@
-// [Your Name Here]
+// [Athena Ching]
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
@@ -49,7 +49,8 @@ public class HeartbeatMonitor
 	/// </summary>
 	public void Start()
 	{
-		throw new NotImplementedException("Implement Start() - see TODO in comments above");
+		_cancellationTokenSource = new CancellationTokenSource();
+		Task.Run(() => MonitorLoop(), _cancellationTokenSource.Token);
 	}
 
 	/// <summary>
