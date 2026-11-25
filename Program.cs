@@ -92,7 +92,11 @@ internal class Program
 						_server!.AddToRoom(message.Sender, message.RoomName!);
 						break;
 					case "leave":
-						_server!.RemoveFromRoom(message.Sender, message.RoomName!);
+						bool removed = _server!.RemoveFromRoom(message.Sender, message.RoomName!);
+						if (!removed)
+						{
+							_consoleUI.DisplaySystem($"{message.RoomName} does not exist or user {message.Sender} is not a member of room {message.RoomName}");
+						}
 						break;
 					case "list rooms":
 						var rooms = _server!.ListRooms();
