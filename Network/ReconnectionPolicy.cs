@@ -1,4 +1,4 @@
-// [Your Name Here]
+// [Athnena Ching]
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
@@ -81,6 +81,7 @@ public class ReconnectionPolicy
 	/// </summary>
 	public async Task<bool> TryReconnect(Peer peer)
 	{
+		int currentAttempt = GetAttemptCount(peer.Id);
 		throw new NotImplementedException("Implement TryReconnect() - see TODO in comments above");
 	}
 
@@ -103,6 +104,6 @@ public class ReconnectionPolicy
 	/// </summary>
 	public int GetAttemptCount(string peerId)
 	{
-		throw new NotImplementedException("Implement GetAttemptCount() - see TODO in comments above");
+		return _attemptCount.TryGetValue(peerId, out int count) ? count : 0;
 	}
 }
