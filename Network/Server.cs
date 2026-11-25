@@ -137,7 +137,28 @@ public class Server
 				var payload = await MessageUtils.ReadBytesAsync(stream, length, token); // reading the payload bytes
 				var message = MessageUtils.PayloadToMessage(payload);
 
-				OnMessageReceived?.Invoke(endpoint, message); // fire the event
+				string roomName = message?.RoomName ?? "";
+				MessageType? messageType = message?.Type;;
+
+				if (!string.IsNullOrEmpty(roomName) && roomName != "" && !_rooms.ContainsKey(roomName) && messageType == MessageType.Text)
+				{
+					Console.WriteLine($"Received message for non-existent room '{roomName}' from {endpoint}");
+					continue; // skip processing this message
+				}
+
+				if (message == null)
+				{
+					Console.WriteLine($"Failed to parse message from {endpoint}");
+					return;
+				}
+				try{
+					OnMessageReceived?.Invoke(endpoint, message); // fire the event
+				}
+				catch (KeyNotFoundException)
+				{
+					Console.WriteLine($"Received message for non-existent room '{roomName}' from {endpoint}");
+					continue;
+				}
 			}
 		}
 		catch (OperationCanceledException) { }
@@ -259,6 +280,7 @@ public class Server
 	/// </summary>
 	public void CreateRoom(string roomName)
 	{
+		Console.WriteLine($"Creating room: {roomName}");
 		if (!_rooms.ContainsKey(roomName))
 		{
 			_rooms.TryAdd(roomName, new HashSet<string>()); // adding the room to the room dict
