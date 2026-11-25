@@ -85,7 +85,7 @@ public class HeartbeatMonitor
 	/// </summary>
 	public void StopMonitoring(string peerId)
 	{
-		throw new NotImplementedException("Implement StopMonitoring() - see TODO in comments above");
+		_lastHeartbeat.TryRemove(peerId, out _);
 	}
 
 	/// <summary>
