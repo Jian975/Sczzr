@@ -1,4 +1,4 @@
-// [Your Name Here]
+// Xuejian Sundvall
 // CSCI 251 - Secure Distributed Messenger
 //
 // SPRINT 3: P2P & Advanced Features
@@ -42,6 +42,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 using SecureMessenger.Core;
 
 namespace SecureMessenger.Network;
@@ -100,7 +101,7 @@ public class PeerDiscovery
 	/// </summary>
 	public void Initialize(int tcpPort)
 	{
-		throw new NotImplementedException("Implement Initialize() - see TODO in comments above");
+		TcpPort = tcpPort;
 	}
 
 	/// <summary>
@@ -117,7 +118,12 @@ public class PeerDiscovery
 	/// </summary>
 	public void RegisterPeer(PeerInfo peer)
 	{
-		throw new NotImplementedException("Implement RegisterPeer() - see TODO in comments above");
+		if (_knownPeers.ContainsKey(peer.Id)) {
+			return;
+		}
+		if (_knownPeers.TryAdd(peer.Id, peer)) {
+			OnPeerDiscovered?.Invoke(peer);
+		}
 	}
 
 	/// <summary>
@@ -139,7 +145,14 @@ public class PeerDiscovery
 	/// </summary>
 	public Message BuildPeerListMessage()
 	{
-		throw new NotImplementedException("Implement BuildPeerListMessage() - see TODO in comments above");
+		List<PeerInfo> peerList = _knownPeers.Values.ToList();
+		peerList.Add(new PeerInfo{Id = LocalPeerId, Port = TcpPort});
+		string json = JsonSerializer.Serialize(peerList);
+		return new Message {
+			Type = MessageType.PeerList,
+			Sender = LocalPeerId,
+			Content = json
+		};
 	}
 
 	/// <summary>
@@ -163,7 +176,21 @@ public class PeerDiscovery
 	/// </summary>
 	public void ProcessPeerListMessage(Message message, IPAddress senderAddress)
 	{
-		throw new NotImplementedException("Implement ProcessPeerListMessage() - see TODO in comments above");
+		List<PeerInfo> peers = JsonSerializer.Deserialize<List<PeerInfo>>(message.Content) ?? new List<PeerInfo>();
+		foreach (PeerInfo peer in peers) {
+			if (peer.Id == LocalPeerId) {
+				continue;
+			}
+			if (peer.Id == message.Sender) {
+				peer.Address = senderAddress.ToString();
+			}
+			if (_knownPeers.ContainsKey(peer.Id)) {
+				continue;
+			}
+			if (_knownPeers.TryAdd(peer.Id, peer)) {
+				OnPeerDiscovered?.Invoke(peer);
+			}
+		}
 	}
 
 	/// <summary>
@@ -181,7 +208,11 @@ public class PeerDiscovery
 	/// </summary>
 	public void RemovePeer(string peerId)
 	{
-		throw new NotImplementedException("Implement RemovePeer() - see TODO in comments above");
+		if (_knownPeers.ContainsKey(peerId)) {
+			if (_knownPeers.TryRemove(peerId, out PeerInfo? removedPeer)) {
+				OnPeerLost?.Invoke(removedPeer!);
+			}
+		}
 	}
 
 	/// <summary>
