@@ -103,7 +103,24 @@ public class HeartbeatMonitor
 	/// </summary>
 	private async Task MonitorLoop()
 	{
-		throw new NotImplementedException("Implement MonitorLoop() - see TODO in comments above");
+		while(_cancellationTokenSource != null && !_cancellationTokenSource.Token.IsCancellationRequested)
+		{
+			DateTime now = DateTime.UtcNow;
+			foreach(var entry in _lastHeartbeat)
+			{
+				string peerId = entry.Key;
+				DateTime lastSeen = entry.Value;
+				TimeSpan elapsed = now - lastSeen;
+
+				if(elapsed > _timeout)
+				{
+					Console.WriteLine($"Connection to {peerId} timed out (last seen {elapsed.TotalSeconds:F1} seconds ago)");
+					OnConnectionFailed?.Invoke(peerId);
+					StopMonitoring(peerId);
+				}
+			}
+			await Task.Delay(1000);
+		}
 	}
 
 	/// <summary>
