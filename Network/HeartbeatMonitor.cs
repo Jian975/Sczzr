@@ -133,7 +133,9 @@ public class HeartbeatMonitor
 	/// </summary>
 	public bool IsAlive(string peerId)
 	{
-		throw new NotImplementedException("Implement IsAlive() - see TODO in comments above");
+		DateTime? lastSeen = _lastHeartbeat.TryGetValue(peerId, out DateTime last) ? last : null;
+		DateTime now = DateTime.UtcNow;
+		return lastSeen != null && now - lastSeen < _timeout;
 	}
 
 	/// <summary>
