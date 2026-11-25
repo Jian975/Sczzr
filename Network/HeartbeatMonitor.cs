@@ -61,7 +61,7 @@ public class HeartbeatMonitor
 	/// </summary>
 	public void StartMonitoring(string peerId)
 	{
-		throw new NotImplementedException("Implement StartMonitoring() - see TODO in comments above");
+		_lastHeartbeat.AddOrUpdate(peerId, DateTime.UtcNow, (key, oldValue) => DateTime.UtcNow);
 	}
 
 	/// <summary>
@@ -73,7 +73,8 @@ public class HeartbeatMonitor
 	/// </summary>
 	public void RecordHeartbeat(string peerId)
 	{
-		throw new NotImplementedException("Implement RecordHeartbeat() - see TODO in comments above");
+		_lastHeartbeat.AddOrUpdate(peerId, DateTime.UtcNow, (key, oldValue) => DateTime.UtcNow);
+		OnHeartbeatReceived?.Invoke(peerId);
 	}
 
 	/// <summary>
