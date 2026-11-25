@@ -108,6 +108,11 @@ public class HeartbeatMonitor
 			DateTime now = DateTime.UtcNow;
 			foreach(var entry in _lastHeartbeat)
 			{
+				if(_cancellationTokenSource != null && _cancellationTokenSource.Token.IsCancellationRequested)
+				{
+					break;
+				}
+				
 				string peerId = entry.Key;
 				DateTime lastSeen = entry.Value;
 				TimeSpan elapsed = now - lastSeen;
@@ -145,6 +150,6 @@ public class HeartbeatMonitor
 	/// </summary>
 	public void Stop()
 	{
-		throw new NotImplementedException("Implement Stop() - see TODO in comments above");
+		_cancellationTokenSource?.Cancel();
 	}
 }

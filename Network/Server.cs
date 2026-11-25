@@ -277,9 +277,13 @@ public class Server
 	/// <summary>
 	///     Removes a user from a room.
 	/// </summary>
-	public void RemoveFromRoom(string username, string roomName)
+	public bool RemoveFromRoom(string username, string roomName)
 	{
-		_rooms[roomName].Remove(username); // removes the user
+		if (_rooms.TryGetValue(roomName, out var members))
+		{
+			return members.Remove(username);
+		}
+		return false;
 	}
 
 	/// <summary>
